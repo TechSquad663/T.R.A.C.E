@@ -1,0 +1,26 @@
+# Core Desktop GUI
+PySide6>=6.6.0
+
+# Analytics & High-Performance Data Ingestion
+numpy>=1.26.0
+pandas>=2.1.0
+polars>=0.20.0
+duckdb>=0.10.0
+
+# Graph Analytics & Network Forensics
+networkx>=3.2.0
+
+# Machine Learning & Explainability
+scikit-learn>=1.4.0
+joblib>=1.3.0
+
+# Optional High-Speed ML Engines (Falls back cleanly if wheels are not compiled on platform)
+# pip install xgboost shap
+xgboost>=2.0.0; sys_platform != "dummy"
+shap>=0.44.0; sys_platform != "dummy"
+
+# Reporting & Forensic Export
+reportlab>=4.1.0
+
+# Testing & Quality Assurance
+pytest>=8.0.0
