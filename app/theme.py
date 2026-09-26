@@ -64,6 +64,9 @@ def get_stylesheet(theme_name: str = "dark") -> str:
     btn_sec_bg = "#1F2937" if is_dark else "#FFFFFF"
     btn_sec_hover = "#374151" if is_dark else "#F1F5F9"
     btn_primary_hover = "#1D4ED8" if is_dark else "#0369A1"
+    btn_primary_pressed = "#1E40AF" if is_dark else "#075985"
+    btn_sec_pressed = "#111827" if is_dark else "#E2E8F0"
+    table_item_hover = "rgba(56, 189, 248, 0.08)" if is_dark else "rgba(2, 132, 199, 0.06)"
     sel_bg = "#1E293B" if is_dark else "#E0F2FE"
     tab_unselected_bg = "#080C14" if is_dark else "#F1F5F9"
     progress_bg = "#1E293B" if is_dark else "#E2E8F0"
@@ -108,6 +111,10 @@ QPushButton.nav-btn:hover {{
     color: {nav_btn_hover_fg};
 }}
 
+QPushButton.nav-btn:pressed {{
+    background-color: {btn_sec_pressed};
+}}
+
 QPushButton.nav-btn:checked {{
     background-color: {nav_btn_checked_bg};
     color: {c['accent_blue']};
@@ -119,8 +126,8 @@ QPushButton.nav-btn:checked {{
 QFrame#HeaderFrame {{
     background-color: {header_bg};
     border-bottom: 1px solid {c['border']};
-    min-height: 52px;
-    max-height: 52px;
+    min-height: 50px;
+    max-height: 60px;
     padding: 0px 16px;
 }}
 
@@ -158,6 +165,16 @@ QPushButton.btn-primary:hover {{
     background-color: {btn_primary_hover};
 }}
 
+QPushButton.btn-primary:pressed {{
+    background-color: {btn_primary_pressed};
+}}
+
+QPushButton.btn-primary:disabled {{
+    background-color: {c['bg_card_alt']};
+    color: {c['text_muted']};
+    border: 1px solid {c['border']};
+}}
+
 QPushButton.btn-success {{
     background-color: #059669;
     color: #FFFFFF;
@@ -170,6 +187,10 @@ QPushButton.btn-success {{
 
 QPushButton.btn-success:hover {{
     background-color: #047857;
+}}
+
+QPushButton.btn-success:pressed {{
+    background-color: #065F46;
 }}
 
 QPushButton.btn-secondary {{
@@ -187,6 +208,10 @@ QPushButton.btn-secondary:hover {{
     border-color: {c['accent_blue']};
 }}
 
+QPushButton.btn-secondary:pressed {{
+    background-color: {btn_sec_pressed};
+}}
+
 QPushButton {{
     background-color: {btn_sec_bg};
     color: {c['text_primary']};
@@ -199,6 +224,16 @@ QPushButton {{
 
 QPushButton:hover {{
     background-color: {btn_sec_hover};
+}}
+
+QPushButton:pressed {{
+    background-color: {btn_sec_pressed};
+}}
+
+QPushButton:disabled {{
+    background-color: {c['bg_card_alt']};
+    color: {c['text_muted']};
+    border: 1px solid {c['border']};
 }}
 
 /* Tables */
@@ -226,6 +261,10 @@ QTableWidget::item {{
     border-bottom: 1px solid {c['border']};
 }}
 
+QTableWidget::item:hover {{
+    background-color: {table_item_hover};
+}}
+
 QTableWidget::item:selected {{
     background-color: {sel_bg};
     color: {c['accent_blue']};
@@ -249,20 +288,60 @@ QComboBox {{
     border: 1px solid {c['border_light']};
     border-radius: 6px;
     padding: 6px 12px;
+    padding-right: 28px;
     color: {c['text_primary']};
-    min-height: 20px;
+    min-height: 22px;
+}}
+
+QComboBox:hover {{
+    border-color: {c['accent_blue']};
 }}
 
 QComboBox:focus {{
     border-color: {c['accent_blue']};
 }}
 
-QComboBox QAbstractItemView {{
+QComboBox::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 24px;
+    border-left: none;
+}}
+
+QComboBox::down-arrow {{
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {c['text_secondary']};
+}}
+
+QComboBox QAbstractItemView, QComboBox QListView {{
     background-color: {c['bg_card']};
     color: {c['text_primary']};
     border: 1px solid {c['border_light']};
+    border-radius: 4px;
     selection-background-color: {sel_bg};
     selection-color: {c['accent_blue']};
+    outline: none;
+    padding: 4px;
+}}
+
+QComboBox QAbstractItemView::item, QComboBox QListView::item {{
+    min-height: 26px;
+    padding: 4px 8px;
+    color: {c['text_primary']};
+    border-radius: 3px;
+}}
+
+QComboBox QAbstractItemView::item:hover, QComboBox QListView::item:hover {{
+    background-color: {table_item_hover};
+    color: {c['text_primary']};
+}}
+
+QComboBox QAbstractItemView::item:selected, QComboBox QListView::item:selected {{
+    background-color: {sel_bg};
+    color: {c['accent_blue']};
 }}
 
 /* ScrollBars */

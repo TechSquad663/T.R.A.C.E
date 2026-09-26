@@ -1,9 +1,17 @@
-"""Reusable PySide6 custom widgets, KPI cards, and forensic badges."""
 from PySide6.QtWidgets import (
-    QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
+    QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget, QComboBox, QListView
 )
 from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
+
+
+class ForensicComboBox(QComboBox):
+    """Clean QComboBox with dedicated QListView popup to prevent Windows rendering artifacts."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setView(QListView(self))
+
 
 
 class KPICard(QFrame):

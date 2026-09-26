@@ -1,15 +1,18 @@
-"""Reports and Exports page."""
+"""Reports and Exports page with responsive scroll container and interactive action feedback."""
 from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox,
-    QFrame, QMessageBox, QFileDialog
+    QFrame, QMessageBox, QFileDialog, QScrollArea, QApplication
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from app.theme import THEME_COLORS, theme_manager
 from config.settings import get_settings
 from reports.pdf_report import ForensicPDFReportGenerator
-from reports.csv_export import export_alerts_to_csv, export_entities_to_csv
+from reports.csv_export import export_alerts_to_csv, export_entities_to_csv, export_transactions_to_csv
 from reports.json_export import export_docket_to_json
+
+
+from ui.components import ForensicComboBox
 
 
 class ReportsPage(QWidget):
@@ -17,7 +20,16 @@ class ReportsPage(QWidget):
 
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout(self)
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Wrap entire page in QScrollArea
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
@@ -42,20 +54,28 @@ class ReportsPage(QWidget):
             "risk fusion indicators, SHAP attributions, network relay endpoints, multi-hop evidence chains, "
             "and statutory disclaimers."
         )
+        self.pc_desc.setWordWrap(True)
         pc_layout.addWidget(self.pc_desc)
 
         ent_select_box = QHBoxLayout()
         ent_select_box.addWidget(QLabel("Select Target Lead:"))
-        self.entity_combo = QComboBox()
-        self.entity_combo.setStyleSheet("min-width: 280px;")
+        self.entity_combo = ForensicComboBox()
+        self.entity_combo.setMinimumWidth(320)
         ent_select_box.addWidget(self.entity_combo)
         ent_select_box.addStretch()
 
         self.btn_gen_pdf = QPushButton("📑 Generate Official PDF Lead Report")
+        self.btn_gen_pdf.setCursor(Qt.PointingHandCursor)
         self.btn_gen_pdf.clicked.connect(self._generate_pdf)
         ent_select_box.addWidget(self.btn_gen_pdf)
 
         pc_layout.addLayout(ent_select_box)
+
+        # Status feedback for PDF
+        self.lbl_pdf_status = QLabel("")
+        self.lbl_pdf_status.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['accent_emerald']}; font-weight: 600;")
+        pc_layout.addWidget(self.lbl_pdf_status)
+
         layout.addWidget(self.pdf_card)
 
         # Tabular Data Exports Card
@@ -67,28 +87,45 @@ class ReportsPage(QWidget):
         ec_layout.addWidget(self.ec_title)
 
         self.ec_desc = QLabel("Export structured alerts, resolved entities, and raw evidence dockets for external offline analytical tools.")
+        self.ec_desc.setWordWrap(True)
         ec_layout.addWidget(self.ec_desc)
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(12)
 
         self.btn_exp_alerts = QPushButton("📥 Export Alerts (CSV)")
+        self.btn_exp_alerts.setCursor(Qt.PointingHandCursor)
         self.btn_exp_alerts.clicked.connect(self._export_alerts_csv)
         btn_row.addWidget(self.btn_exp_alerts)
 
         self.btn_exp_entities = QPushButton("📥 Export Entities (CSV)")
+        self.btn_exp_entities.setCursor(Qt.PointingHandCursor)
         self.btn_exp_entities.clicked.connect(self._export_entities_csv)
         btn_row.addWidget(self.btn_exp_entities)
 
+        self.btn_exp_txs = QPushButton("📥 Export Transactions (CSV)")
+        self.btn_exp_txs.setCursor(Qt.PointingHandCursor)
+        self.btn_exp_txs.clicked.connect(self._export_transactions_csv)
+        btn_row.addWidget(self.btn_exp_txs)
+
         self.btn_exp_json = QPushButton("📥 Export Evidence Docket (JSON)")
+        self.btn_exp_json.setCursor(Qt.PointingHandCursor)
         self.btn_exp_json.clicked.connect(self._export_docket_json)
         btn_row.addWidget(self.btn_exp_json)
 
         btn_row.addStretch()
         ec_layout.addLayout(btn_row)
-        layout.addWidget(self.exp_card)
 
+        # Status feedback for Exports
+        self.lbl_export_status = QLabel("")
+        self.lbl_export_status.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['accent_emerald']}; font-weight: 600;")
+        ec_layout.addWidget(self.lbl_export_status)
+
+        layout.addWidget(self.exp_card)
         layout.addStretch()
+
+        scroll.setWidget(content)
+        page_layout.addWidget(scroll)
 
         self.pipeline = None
 
@@ -117,6 +154,10 @@ class ReportsPage(QWidget):
             QPushButton:hover {{
                 background-color: {"#1D4ED8" if is_dark else "#0369A1"};
             }}
+            QPushButton:disabled {{
+                background-color: {THEME_COLORS['bg_card_alt']};
+                color: {THEME_COLORS['text_muted']};
+            }}
         """)
 
         self.exp_card.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 8px; padding: 16px;")
@@ -136,24 +177,35 @@ class ReportsPage(QWidget):
                 background-color: {THEME_COLORS['bg_card_alt']};
                 border-color: {THEME_COLORS['accent_blue']};
             }}
+            QPushButton:disabled {{
+                color: {THEME_COLORS['text_muted']};
+            }}
         """
         self.btn_exp_alerts.setStyleSheet(btn_style)
         self.btn_exp_entities.setStyleSheet(btn_style)
+        self.btn_exp_txs.setStyleSheet(btn_style)
         self.btn_exp_json.setStyleSheet(btn_style)
 
     def update_data(self, pipeline):
         self.pipeline = pipeline
         if not pipeline or not pipeline.dockets:
             return
+        self.entity_combo.blockSignals(True)
         self.entity_combo.clear()
         for ent_id in pipeline.entities.keys():
             self.entity_combo.addItem(ent_id)
+        self.entity_combo.blockSignals(False)
 
     def _generate_pdf(self):
         ent_id = self.entity_combo.currentText()
         if not ent_id or not self.pipeline or ent_id not in self.pipeline.dockets:
             QMessageBox.warning(self, "No Target", "Please select a target investigative lead from an active dataset.")
             return
+
+        self.btn_gen_pdf.setEnabled(False)
+        self.btn_gen_pdf.setText("⏳ Generating PDF Dossier...")
+        self.lbl_pdf_status.setText("Preparing forensic artifacts and rendering 12-section PDF...")
+        QApplication.processEvents()
 
         settings = get_settings()
         out_dir = settings.EXPORTS_DIR
@@ -169,13 +221,19 @@ class ReportsPage(QWidget):
         try:
             gen = ForensicPDFReportGenerator(str(out_path))
             pdf_file = gen.build_report(docket, metadata=meta)
+            self.lbl_pdf_status.setText(f"✓ PDF Generated: {out_path.name}")
+            QTimer.singleShot(4000, lambda: self.lbl_pdf_status.setText(""))
             QMessageBox.information(
                 self,
                 "Report Generated [OFFLINE]",
                 f"12-Section PDF Lead Dossier generated successfully:\n\n{pdf_file}\n\nStrictly evidentiary and audit-ready."
             )
         except Exception as e:
+            self.lbl_pdf_status.setText("❌ PDF generation failed.")
             QMessageBox.critical(self, "PDF Export Error", f"Failed to generate PDF lead report:\n\n{e}")
+        finally:
+            self.btn_gen_pdf.setEnabled(True)
+            self.btn_gen_pdf.setText("📑 Generate Official PDF Lead Report")
 
     def _export_alerts_csv(self):
         if not self.pipeline or not self.pipeline.alerts:
@@ -183,8 +241,17 @@ class ReportsPage(QWidget):
             return
         settings = get_settings()
         out_path = settings.EXPORTS_DIR / "alerts_export.csv"
-        export_alerts_to_csv(self.pipeline.alerts, out_path)
-        QMessageBox.information(self, "CSV Export", f"Alerts exported to:\n{out_path}")
+        self.btn_exp_alerts.setEnabled(False)
+        self.btn_exp_alerts.setText("⏳ Exporting...")
+        QApplication.processEvents()
+        try:
+            export_alerts_to_csv(self.pipeline.alerts, out_path)
+            self.lbl_export_status.setText(f"✓ Alerts exported to {out_path.name}")
+            QTimer.singleShot(4000, lambda: self.lbl_export_status.setText(""))
+            QMessageBox.information(self, "CSV Export", f"Alerts exported to:\n{out_path}")
+        finally:
+            self.btn_exp_alerts.setEnabled(True)
+            self.btn_exp_alerts.setText("📥 Export Alerts (CSV)")
 
     def _export_entities_csv(self):
         if not self.pipeline or not self.pipeline.entities:
@@ -192,8 +259,35 @@ class ReportsPage(QWidget):
             return
         settings = get_settings()
         out_path = settings.EXPORTS_DIR / "entities_export.csv"
-        export_entities_to_csv(list(self.pipeline.entities.values()), out_path)
-        QMessageBox.information(self, "CSV Export", f"Entities exported to:\n{out_path}")
+        self.btn_exp_entities.setEnabled(False)
+        self.btn_exp_entities.setText("⏳ Exporting...")
+        QApplication.processEvents()
+        try:
+            export_entities_to_csv(list(self.pipeline.entities.values()), out_path)
+            self.lbl_export_status.setText(f"✓ Entities exported to {out_path.name}")
+            QTimer.singleShot(4000, lambda: self.lbl_export_status.setText(""))
+            QMessageBox.information(self, "CSV Export", f"Entities exported to:\n{out_path}")
+        finally:
+            self.btn_exp_entities.setEnabled(True)
+            self.btn_exp_entities.setText("📥 Export Entities (CSV)")
+
+    def _export_transactions_csv(self):
+        if not self.pipeline or not self.pipeline.records:
+            QMessageBox.warning(self, "No Data", "No transactions available to export.")
+            return
+        settings = get_settings()
+        out_path = settings.EXPORTS_DIR / "transactions_export.csv"
+        self.btn_exp_txs.setEnabled(False)
+        self.btn_exp_txs.setText("⏳ Exporting...")
+        QApplication.processEvents()
+        try:
+            export_transactions_to_csv(self.pipeline.records, out_path)
+            self.lbl_export_status.setText(f"✓ Transactions exported to {out_path.name}")
+            QTimer.singleShot(4000, lambda: self.lbl_export_status.setText(""))
+            QMessageBox.information(self, "CSV Export", f"Transactions exported to:\n{out_path}")
+        finally:
+            self.btn_exp_txs.setEnabled(True)
+            self.btn_exp_txs.setText("📥 Export Transactions (CSV)")
 
     def _export_docket_json(self):
         ent_id = self.entity_combo.currentText()
@@ -202,5 +296,14 @@ class ReportsPage(QWidget):
             return
         settings = get_settings()
         out_path = settings.EXPORTS_DIR / f"docket_{ent_id}.json"
-        export_docket_to_json(self.pipeline.dockets[ent_id], out_path)
-        QMessageBox.information(self, "JSON Export", f"Evidence docket exported to:\n{out_path}")
+        self.btn_exp_json.setEnabled(False)
+        self.btn_exp_json.setText("⏳ Exporting...")
+        QApplication.processEvents()
+        try:
+            export_docket_to_json(self.pipeline.dockets[ent_id], out_path)
+            self.lbl_export_status.setText(f"✓ Docket exported to {out_path.name}")
+            QTimer.singleShot(4000, lambda: self.lbl_export_status.setText(""))
+            QMessageBox.information(self, "JSON Export", f"Evidence docket exported to:\n{out_path}")
+        finally:
+            self.btn_exp_json.setEnabled(True)
+            self.btn_exp_json.setText("📥 Export Evidence Docket (JSON)")

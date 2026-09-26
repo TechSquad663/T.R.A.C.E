@@ -23,8 +23,10 @@ class Header(QFrame):
         title_box = QHBoxLayout()
         title_box.setSpacing(8)
 
-        self.title_lbl = QLabel("Bitcoin Traffic Forensic Console")
+        self.title_lbl = QLabel("TRACE  ›  Command Center")
         self.dataset_tag = QLabel("[No Dataset Loaded]")
+        self.dataset_tag.setMinimumWidth(180)
+        self.dataset_tag.setMaximumWidth(360)
         self.current_dataset_name = None
         self.current_record_count = 0
 
@@ -48,10 +50,12 @@ class Header(QFrame):
         # Action Buttons
         self.btn_import = QPushButton("📂 Import Dataset")
         self.btn_import.setProperty("class", "btn-secondary")
+        self.btn_import.setCursor(Qt.PointingHandCursor)
         self.btn_import.clicked.connect(self.import_dataset_requested.emit)
 
         self.btn_demo = QPushButton("🚀 Run Demo Investigation")
         self.btn_demo.setProperty("class", "btn-primary")
+        self.btn_demo.setCursor(Qt.PointingHandCursor)
         self.btn_demo.clicked.connect(self.run_demo_requested.emit)
 
         layout.addWidget(self.btn_import)
@@ -182,3 +186,7 @@ class Header(QFrame):
             font-size: 11px;
             font-weight: 600;
         """)
+
+    def set_page_title(self, page_name: str):
+        """Update header title to reflect active page context."""
+        self.title_lbl.setText(f"TRACE  ›  {page_name}")

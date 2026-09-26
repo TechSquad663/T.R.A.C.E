@@ -89,7 +89,7 @@ class PathAnalyzer:
         """
         valid_seeds = [s for s in seed_nodes if self.graph.has_node(s)]
         if not valid_seeds:
-            logger.warning("No valid seed nodes found in graph for taint propagation.")
+            logger.info("No explicit seed nodes matched in active graph for taint propagation.")
             return {node: 0.0 for node in self.graph.nodes()}
             
         personalization = {node: 0.0 for node in self.graph.nodes()}

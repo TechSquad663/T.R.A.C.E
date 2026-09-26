@@ -1,12 +1,15 @@
-"""Settings and System Administration Page with Theme Configuration."""
+"""Settings and System Administration Page with Theme Configuration and Scroll Responsiveness."""
 from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QDoubleSpinBox, QPushButton,
-    QFrame, QTextEdit, QMessageBox, QComboBox
+    QFrame, QTextEdit, QMessageBox, QComboBox, QScrollArea, QApplication
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from app.theme import THEME_COLORS, theme_manager
 from config.settings import get_settings
+
+
+from ui.components import ForensicComboBox
 
 
 class SettingsPage(QWidget):
@@ -14,7 +17,16 @@ class SettingsPage(QWidget):
 
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout(self)
+        page_layout = QVBoxLayout(self)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Wrap in QScrollArea for responsiveness
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
@@ -38,13 +50,14 @@ class SettingsPage(QWidget):
             "Select visual presentation mode. Dark Workstation provides low-glare focus for extended forensics sessions. "
             "Light Analyst delivers high contrast for briefing rooms, reports verification, and daylight operations."
         )
+        self.tc_desc.setWordWrap(True)
         tc_layout.addWidget(self.tc_desc)
 
         th_row = QHBoxLayout()
         th_row.setSpacing(12)
         th_row.addWidget(QLabel("Active Theme Mode:"))
 
-        self.theme_combo = QComboBox()
+        self.theme_combo = ForensicComboBox()
         self.theme_combo.addItem("🌙 Dark Workstation (Deep Obsidian)", "dark")
         self.theme_combo.addItem("☀️ Light Analyst (Crisp Slate)", "light")
         self.theme_combo.setCurrentIndex(0 if theme_manager.is_dark() else 1)
@@ -108,9 +121,17 @@ class SettingsPage(QWidget):
 
         wc_layout.addLayout(spin_box)
 
+        save_row = QHBoxLayout()
+        self.lbl_weights_saved = QLabel("")
+        self.lbl_weights_saved.setStyleSheet(f"color: {THEME_COLORS['accent_emerald']}; font-size: 11px; font-weight: 600;")
+        save_row.addWidget(self.lbl_weights_saved)
+        save_row.addStretch()
+
         self.btn_save_weights = QPushButton("Save Risk Weights")
+        self.btn_save_weights.setCursor(Qt.PointingHandCursor)
         self.btn_save_weights.clicked.connect(self._save_weights)
-        wc_layout.addWidget(self.btn_save_weights, alignment=Qt.AlignRight)
+        save_row.addWidget(self.btn_save_weights)
+        wc_layout.addLayout(save_row)
 
         layout.addWidget(self.weights_card)
 
@@ -127,6 +148,7 @@ class SettingsPage(QWidget):
         has_geoip = any(geoip_dir.glob("*.mmdb")) or any(geoip_dir.glob("*.csv"))
         status_text = "Local GeoIP Database Loaded (data/geoip/)" if has_geoip else "GeoIP enrichment unavailable (Preserving dataset country/asn metadata offline; no external lookups)"
         self.gc_desc = QLabel(status_text)
+        self.gc_desc.setWordWrap(True)
         gc_layout.addWidget(self.gc_desc)
 
         layout.addWidget(self.geo_card)
@@ -137,12 +159,19 @@ class SettingsPage(QWidget):
 
         self.log_viewer = QTextEdit()
         self.log_viewer.setReadOnly(True)
+        self.log_viewer.setMinimumHeight(140)
         layout.addWidget(self.log_viewer)
 
         # Refresh log button
         self.btn_refresh_log = QPushButton("🔄 Refresh Log Stream")
+        self.btn_refresh_log.setCursor(Qt.PointingHandCursor)
         self.btn_refresh_log.clicked.connect(self._refresh_log)
         layout.addWidget(self.btn_refresh_log, alignment=Qt.AlignRight)
+
+        layout.addStretch()
+
+        scroll.setWidget(content)
+        page_layout.addWidget(scroll)
 
         self.refresh_theme()
         theme_manager.theme_changed.connect(self._on_theme_manager_changed)
@@ -210,6 +239,8 @@ class SettingsPage(QWidget):
         settings.WEIGHT_ANOMALY_SCORE = self.spin_anomaly.value()
         settings.WEIGHT_GRAPH_SIGNAL = self.spin_graph.value()
         settings.WEIGHT_NETWORK_SIGNAL = self.spin_network.value()
+        self.lbl_weights_saved.setText("✓ Weights saved successfully!")
+        QTimer.singleShot(3000, lambda: self.lbl_weights_saved.setText(""))
         QMessageBox.information(self, "Saved", "Risk fusion engine weights updated.")
 
     def _refresh_log(self):

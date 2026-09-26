@@ -1,6 +1,6 @@
 """Workstation sidebar navigation component."""
 from PySide6.QtWidgets import (
-    QFrame, QVBoxLayout, QPushButton, QLabel, QButtonGroup, QWidget
+    QFrame, QVBoxLayout, QPushButton, QLabel, QButtonGroup, QWidget, QScrollArea
 )
 from PySide6.QtCore import Qt, Signal
 from app.theme import THEME_COLORS, theme_manager
@@ -29,16 +29,28 @@ class Sidebar(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("SidebarFrame")
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 16, 12, 16)
-        layout.setSpacing(6)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(12, 16, 12, 14)
+        main_layout.setSpacing(6)
 
         # Brand / Title
         self.brand_lbl = QLabel("TRACE")
         self.sub_brand_lbl = QLabel("SIH26146 • NTRO FORENSICS")
 
-        layout.addWidget(self.brand_lbl)
-        layout.addWidget(self.sub_brand_lbl)
+        main_layout.addWidget(self.brand_lbl)
+        main_layout.addWidget(self.sub_brand_lbl)
+
+        # Scrollable Nav Buttons Area
+        self.nav_scroll = QScrollArea()
+        self.nav_scroll.setWidgetResizable(True)
+        self.nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.nav_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        nav_widget = QWidget()
+        nav_widget.setStyleSheet("background: transparent;")
+        nav_layout = QVBoxLayout(nav_widget)
+        nav_layout.setContentsMargins(0, 4, 0, 4)
+        nav_layout.setSpacing(4)
 
         # Nav button group
         self.button_group = QButtonGroup(self)
@@ -49,20 +61,23 @@ class Sidebar(QFrame):
             btn = QPushButton(label)
             btn.setCheckable(True)
             btn.setProperty("class", "nav-btn")
+            btn.setCursor(Qt.PointingHandCursor)
             if idx == 0:
                 btn.setChecked(True)
             self.button_group.addButton(btn, page_idx)
             self.buttons.append(btn)
-            layout.addWidget(btn)
+            nav_layout.addWidget(btn)
 
         self.button_group.idClicked.connect(self._on_button_clicked)
+        nav_layout.addStretch()
 
-        layout.addStretch()
+        self.nav_scroll.setWidget(nav_widget)
+        main_layout.addWidget(self.nav_scroll, 1)
 
         # Offline Verified Badge at bottom of sidebar
         self.offline_box = QFrame()
         off_layout = QVBoxLayout(self.offline_box)
-        off_layout.setContentsMargins(6, 6, 6, 6)
+        off_layout.setContentsMargins(8, 8, 8, 8)
         off_layout.setSpacing(2)
 
         self.off_title = QLabel("🔒 100% AIR-GAPPED")
@@ -70,7 +85,7 @@ class Sidebar(QFrame):
 
         off_layout.addWidget(self.off_title)
         off_layout.addWidget(self.off_desc)
-        layout.addWidget(self.offline_box)
+        main_layout.addWidget(self.offline_box)
 
         self.refresh_theme()
         theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
@@ -91,7 +106,7 @@ class Sidebar(QFrame):
             color: {THEME_COLORS['text_muted']};
             letter-spacing: 1px;
             padding-left: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         """)
 
         self.offline_box.setStyleSheet(f"""
@@ -108,6 +123,7 @@ class Sidebar(QFrame):
         self.page_changed.emit(page_id)
 
     def set_active_page(self, page_id: int):
-        btn = self.button_group.button(page_id)
-        if btn:
-            btn.setChecked(True)
+        for btn in self.buttons:
+            if self.button_group.id(btn) == page_id:
+                btn.setChecked(True)
+                break

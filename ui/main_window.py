@@ -165,8 +165,25 @@ class MainWindow(QMainWindow):
         self.page_settings = SettingsPage()
         self.stack.addWidget(self.page_settings)
 
+    PAGE_NAMES = [
+        "Command Center",
+        "Dataset Ingestion",
+        "Transactions",
+        "Entities & Wallets",
+        "Link Analysis",
+        "Behavioral Anomalies",
+        "Ranked Alerts",
+        "Investigations",
+        "Evidence Chain",
+        "Model Evaluation",
+        "Reports & Exports",
+        "System & Settings",
+    ]
+
     def _on_page_changed(self, page_index: int):
         self.stack.setCurrentIndex(page_index)
+        if 0 <= page_index < len(self.PAGE_NAMES):
+            self.header.set_page_title(self.PAGE_NAMES[page_index])
 
     def run_demo_investigation(self):
         """One-click deterministic demo investigation."""
@@ -214,7 +231,9 @@ class MainWindow(QMainWindow):
         self.page_graph.update_data(self.pipeline)
         self.page_anomalies.update_data(self.pipeline)
         self.page_alerts.update_data(self.pipeline)
+        self.page_investigations.update_data(self.pipeline)
         self.page_evidence.update_data(self.pipeline)
+        self.page_evaluation.update_data(self.pipeline)
         self.page_reports.update_data(self.pipeline)
 
         self.status_bar.set_status(

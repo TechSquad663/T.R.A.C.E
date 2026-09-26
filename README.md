@@ -4,7 +4,8 @@
 [![Organization](https://img.shields.io/badge/NTRO-National%20Technical%20Research%20Organisation-red.svg)](https://ntro.gov.in)
 [![Security](https://img.shields.io/badge/Air--Gapped-100%25%20Offline-success.svg)](#offline-deployment)
 [![UI](https://img.shields.io/badge/GUI-PySide6%20Qt%20Native-purple.svg)](#running-the-desktop-application)
-[![Tests](https://img.shields.io/badge/Tests-29%20Passed-brightgreen.svg)](#testing)
+[![Theme](https://img.shields.io/badge/Theme-Dark%20%26%20Light%20Modes-informational.svg)](#dual-workstation-themes)
+[![Tests](https://img.shields.io/badge/Tests-36%20Passed-brightgreen.svg)](#testing)
 
 > **SIH26146:** AI-Powered Monitoring & Analysis of Bitcoin Transaction Traffic  
 > **Organization:** National Technical Research Organisation (NTRO)  
@@ -22,7 +23,7 @@ In forensic investigations, law enforcement agencies encounter large volumes of 
 ```
 RAW CAPTURES (CSV/JSON/XML)
        ↓
-INGESTION & QUARANTINE VALIDATION
+INGESTION & SHA-256 FORENSIC INTEGRITY VERIFICATION
        ↓
 NETWORK ↔ BLOCKCHAIN CORRELATION
        ↓
@@ -51,18 +52,38 @@ PYSIDE6 NATIVE DESKTOP CONSOLE & 12-SECTION PDF REPORT
 ## Key Features
 
 1. **100% Offline & Air-Gap Verified:** Zero external API calls, zero web trackers, zero runtime package downloads. Includes an automated socket verification guard (`scripts/verify_offline.py`).
-2. **Multi-Format Ingestion:** Robust ingestion of CSV, JSON, and XML files with automatic delimiter sniffing, array parsing, and schema quarantine.
-3. **Cross-Layer Correlation:** Cryptographic matching of network P2P broadcast events (`src_ip`, `dst_ip`, `port`, `asn`) with on-chain Bitcoin ledger transactions (`txid`, inputs, outputs, fee).
-4. **Common Input Ownership (CIO) Heuristic:** Disjoint Set Union (Union-Find) clustering to group co-spent input addresses into provisional entities with confidence calibration.
-5. **Heterogeneous Graph Analytics:** Full NetworkX multigraph supporting degree centrality, PageRank, betweenness centrality, and shortest evidence path generation.
-6. **Triple-Engine AI/ML:**
+2. **Multi-Format Ingestion with SHA-256 Verification:** Robust ingestion of CSV, JSON, and XML files with automatic delimiter sniffing, array parsing, schema quarantine, and bit-level SHA-256 hash custody tracking.
+3. **Dual Workstation Themes:** Seamless real-time switching between **Dark Mode (Deep Obsidian)** and **Light Mode (Crisp Slate)** via 1-click header toggle or the Settings console.
+4. **Native PySide6 Forensic Charts:** Custom `QPainter`-rendered vector visualizations:
+   - **Transaction Activity Timeline:** Temporal traffic curve with gradient area fills.
+   - **Risk Score Distribution:** Crisp multi-slice donut chart with integrated center KPI and legend.
+   - **Investigative Priorities:** Horizontal severity bar breakdown.
+   - **Behavioral Patterns:** Categorical bar breakdown of detected heuristics.
+5. **Cross-Layer Correlation:** Cryptographic matching of network P2P broadcast events (`src_ip`, `dst_ip`, `port`, `asn`) with on-chain Bitcoin ledger transactions (`txid`, inputs, outputs, fee).
+6. **Common Input Ownership (CIO) Heuristic:** Disjoint Set Union (Union-Find) clustering to group co-spent input addresses into provisional entities with confidence calibration and statutory disclaimers.
+7. **Heterogeneous Graph Analytics & Seed Risk Propagation:** Full NetworkX multigraph supporting degree centrality, PageRank, betweenness centrality, 1-hop/2-hop neighborhood expansion, and Personalized PageRank multi-hop taint decay from selected seed wallets.
+8. **Triple-Engine AI/ML:**
    - **XGBoost:** Primary supervised detector classifying behavioral patterns.
    - **Isolation Forest:** Secondary unsupervised multivariate anomaly detector.
    - **DBSCAN:** Behavioral cohort clustering with 2D PCA projection.
-7. **Explainability via SHAP:** Generates additive feature attributions for every flagged lead, highlighting exactly which behavioral traits elevated risk.
-8. **Statutory Evidentiary Language:** Strictly adheres to forensic standards—presents findings as *"Investigative Leads"*, *"Anomalous Behaviors"*, and *"Circumstantial Relay Observations"*, never fabricating legal guilt.
-9. **Interactive Link Analysis Canvas:** Native PySide6 `QGraphicsView` graph visualizer featuring zoom, pan, 1-hop/2-hop neighborhood expansion, and evidence chain tracing.
-10. **Official 12-Section PDF Lead Reports:** Generates law-enforcement-ready PDF dossiers and CSV/JSON data extracts offline.
+9. **Explainability via SHAP:** Generates additive feature attributions for every flagged lead, highlighting exactly which behavioral traits elevated risk.
+10. **Statutory Evidentiary Language:** Strictly adheres to forensic standards—presents findings as *"Investigative Leads"*, *"Anomalous Behaviors"*, and *"Circumstantial Relay Observations"*, never fabricating legal guilt.
+11. **Official 12-Section PDF Lead Reports:** Generates law-enforcement-ready PDF dossiers and CSV/JSON data extracts offline.
+
+---
+
+## Dual Workstation Themes
+
+TRACE features a unified theme system with synchronized tokens for both modes:
+
+| Element | Dark Mode (Deep Obsidian) | Light Mode (Crisp Slate) |
+|:---|:---|:---|
+| **Window Background** | `#020617` (Deep Obsidian) | `#F8FAFC` (Crisp Slate) |
+| **Card / Panel Background** | `#0B132B` (Obsidian Card) | `#FFFFFF` (Pure White) |
+| **Borders** | `#1E293B` (Subtle Slate) | `#E2E8F0` (Soft Gray) |
+| **Primary Text** | `#F8FAFC` (Bright White) | `#0F172A` (Deep Slate) |
+| **Secondary Text** | `#94A3B8` (Muted Slate) | `#475569` (Charcoal Slate) |
+| **Accent Blue** | `#38BDF8` (Sky Blue) | `#0284C7` (Cobalt Blue) |
 
 ---
 
@@ -88,7 +109,7 @@ PYSIDE6 NATIVE DESKTOP CONSOLE & 12-SECTION PDF REPORT
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/ntro-sih/TRACE.git
+git clone https://github.com/TechSquad663/T.R.A.C.E.git
 cd TRACE
 
 # 2. Create virtual environment
@@ -117,15 +138,16 @@ python main.py
 ### The 10-Step Hackathon Judge Demonstration Flow
 
 1. **Launch:** Run `python main.py`. Note the green **`🛡️ OFFLINE VERIFIED`** indicator in the header.
-2. **Generate Demo Data:** Click **`[⚡ Run Demo Investigation]`** in the header or overview page.
-3. **Automated Pipeline Execution:** Watch the 14-stage background worker process 1,200 transactions across 10 behavioral archetypes.
-4. **Overview Dashboard:** Review dataset KPIs, risk distribution breakdown, and topological metrics.
-5. **Triage Leads:** Navigate to **Ranked Alerts** (`ui/alerts`). Open the highest-priority lead.
-6. **Examine "Why Flagged":** Review the **SHAP feature attribution waterfall** showing the exact behavioral drivers (e.g. `fan_out_ratio: +0.28`, `burst_score: +0.19`).
-7. **Link Analysis:** Open **Link Analysis** (`ui/graph`). Click on the flagged entity and click **`[1-Hop Neighborhood]`** or **`[2-Hop Neighborhood]`** to visually isolate the fund dispersion tree.
-8. **Trace Evidence Chain:** Open **Evidence Chain** (`ui/evidence`) to review the multi-layer step-by-step causal chain (`IP -> TX -> Wallet -> Destination Wallet`).
-9. **Export PDF Dossier:** Navigate to **Reports & Exports** (`ui/reports`) and click **`[📑 Generate Official PDF Lead Report]`**. View the generated 12-section PDF in `data/exports/`.
-10. **Offline Proof:** Disconnect Wi-Fi and Ethernet. Rerun `python scripts/verify_offline.py`—100% of pipeline stages execute with zero network calls!
+2. **Theme Switch:** Toggle between **`☀️ Light Mode`** and **`🌙 Dark Mode`** using the header button. All cards, charts, and tables update in real time.
+3. **Dataset Ingestion & SHA-256:** Navigate to **Dataset Ingestion** (`ui/ingestion`). Import a CSV/JSON/XML file or click **`[⚡ Generate Demo Dataset]`**. Inspect the calculated SHA-256 hash and **`🛡️ Integrity Verified`** status card.
+4. **Automated Pipeline Execution:** Click **`[🚀 Run Forensic Investigation]`**. Watch the 14-stage background worker process records across behavioral archetypes without GUI freezing.
+5. **Command Center / Overview Dashboard:** Review dataset KPIs, the Transaction Traffic Timeline, Risk Score Donut distribution, and top detected behavioral patterns.
+6. **Triage Leads:** Navigate to **Ranked Alerts** (`ui/alerts`). Open the highest-priority lead. Review the SHAP feature attributions and forensic reasons.
+7. **Link Analysis & Seed Risk Propagation:** Open **Link Analysis** (`ui/graph`). Select a node, test **`[1-Hop Neighborhood]`** and **`[2-Hop Neighborhood]`**, or click **`[🌱 Propagate Seed Risk]`** to calculate Personalized PageRank multi-hop taint decay.
+8. **Examine CIO Heuristic Entities:** Open **Entity Intelligence** (`ui/entities`). Double-click an entity to view its member wallet addresses and the statutory Common Input Ownership disclaimer.
+9. **Trace Evidence Chain:** Open **Evidence Chain** (`ui/evidence`) to review the multi-layer step-by-step causal chain (`IP -> TX -> Wallet -> Destination Wallet`).
+10. **Export PDF Dossier & Tabular Data:** Navigate to **Reports & Exports** (`ui/reports`). Click **`[📑 Generate Official PDF Lead Report]`** or export alerts/entities/transactions as CSV and JSON.
+11. **Offline Proof:** Disconnect all network interfaces. Run `python scripts/verify_offline.py`—100% of pipeline stages pass under active socket lockdown!
 
 ---
 
@@ -143,13 +165,15 @@ python main.py
 
 ## Testing
 
-Execute the comprehensive 29-test unit and security suite:
+Execute the comprehensive 36-test automated unit and security suite:
 
 ```bash
 pytest tests/ -v
 ```
 
-All 29 tests validate:
+All 36 tests validate:
+- Dynamic theme switching, tokens, and QSS generation.
+- Forensic chart widgets (DonutChart, ActivityLineChart, HorizontalBarChart) and overview painting.
 - CSV, JSON, XML ingestion and malformed data handling.
 - TXID validation, IP checks, array mismatch quarantines.
 - Disjoint Set Union (DSU) and Common Input Ownership (CIO).

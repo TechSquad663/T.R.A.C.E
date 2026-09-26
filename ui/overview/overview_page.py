@@ -1,4 +1,4 @@
-"""Overview dashboard page displaying dataset-derived KPIs and risk distribution."""
+"""Overview dashboard page displaying dataset-derived KPIs, risk distribution, and forensic charts."""
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame,
     QTableWidget, QTableWidgetItem, QHeaderView, QScrollArea
@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
 from ui.components import KPICard, RiskBadge, EmptyStateWidget
+from ui.charts import ForensicCard, DonutChartWidget, ActivityLineChartWidget, HorizontalBarChartWidget
+from ui.alerts.alert_details import AlertDetailsDialog
 
 
 class OverviewPage(QWidget):
@@ -30,13 +32,13 @@ class OverviewPage(QWidget):
 
         content_widget = QWidget()
         self.layout = QVBoxLayout(content_widget)
-        self.layout.setContentsMargins(24, 20, 24, 20)
-        self.layout.setSpacing(20)
+        self.layout.setContentsMargins(20, 16, 20, 16)
+        self.layout.setSpacing(16)
 
         # Header Info Banner
         self.banner = QFrame()
         b_layout = QVBoxLayout(self.banner)
-        b_layout.setContentsMargins(8, 4, 8, 4)
+        b_layout.setContentsMargins(10, 8, 10, 8)
         b_layout.setSpacing(2)
 
         self.banner_title = QLabel("ANALYTICAL INTELLIGENCE OVERVIEW (OFFLINE DATASET)")
@@ -45,7 +47,7 @@ class OverviewPage(QWidget):
         b_layout.addWidget(self.banner_sub)
         self.layout.addWidget(self.banner)
 
-        # KPI Cards Grid
+        # KPI Cards Grid (6 cards)
         kpi_grid = QGridLayout()
         kpi_grid.setSpacing(12)
 
@@ -65,14 +67,38 @@ class OverviewPage(QWidget):
 
         self.layout.addLayout(kpi_grid)
 
-        # Two Column Section: Top Leads Table & Summary Metrics
+        # Forensic Charts Row: Activity Timeline | Risk Tier Donut | Alert Priority
+        charts_row = QHBoxLayout()
+        charts_row.setSpacing(14)
+
+        # 1. Activity Line Chart Card
+        self.activity_card = ForensicCard("TRANSACTION TRAFFIC TIMELINE", "Temporal observation count over time")
+        self.activity_chart = ActivityLineChartWidget()
+        self.activity_card.add_widget(self.activity_chart)
+        charts_row.addWidget(self.activity_card, 2)
+
+        # 2. Risk Donut Card
+        self.risk_card = ForensicCard("RISK SCORE DISTRIBUTION", "Entity risk tier segmentation (0-100)")
+        self.risk_donut = DonutChartWidget()
+        self.risk_card.add_widget(self.risk_donut)
+        charts_row.addWidget(self.risk_card, 1)
+
+        # 3. Priority Bar Card
+        self.priority_card = ForensicCard("INVESTIGATIVE PRIORITIES", "Lead severity breakdown")
+        self.priority_chart = HorizontalBarChartWidget()
+        self.priority_card.add_widget(self.priority_chart)
+        charts_row.addWidget(self.priority_card, 1)
+
+        self.layout.addLayout(charts_row)
+
+        # Lower Section: Top Leads Table & Behavioral Patterns / Summary
         sec_layout = QHBoxLayout()
-        sec_layout.setSpacing(16)
+        sec_layout.setSpacing(14)
 
         # Left: Top Leads Table
         self.tbl_frame = QFrame()
         tbl_layout = QVBoxLayout(self.tbl_frame)
-        tbl_layout.setContentsMargins(8, 8, 8, 8)
+        tbl_layout.setContentsMargins(12, 10, 12, 10)
         tbl_layout.setSpacing(8)
 
         self.tbl_title = QLabel("TOP RANKED INVESTIGATIVE LEADS")
@@ -80,18 +106,34 @@ class OverviewPage(QWidget):
 
         self.leads_table = QTableWidget(0, 5)
         self.leads_table.setHorizontalHeaderLabels(["Priority", "Entity ID", "Risk", "Pattern", "Confidence"])
-        self.leads_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        header = self.leads_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self.leads_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.leads_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.leads_table.setMinimumHeight(220)
+        self.leads_table.doubleClicked.connect(self._open_lead_details)
         tbl_layout.addWidget(self.leads_table)
 
         sec_layout.addWidget(self.tbl_frame, 2)
 
-        # Right: Geo & Graph Summary Card
+        # Right: Pattern Breakdown & Topological Summary
+        right_panel = QVBoxLayout()
+        right_panel.setSpacing(12)
+
+        self.pattern_card = ForensicCard("DETECTED BEHAVIORAL PATTERNS", "Top anomalous behavior heuristics")
+        self.pattern_chart = HorizontalBarChartWidget()
+        self.pattern_card.add_widget(self.pattern_chart)
+        right_panel.addWidget(self.pattern_card)
+
+        # Geo & Graph Summary Card
         self.info_frame = QFrame()
         info_layout = QVBoxLayout(self.info_frame)
-        info_layout.setContentsMargins(12, 12, 12, 12)
-        info_layout.setSpacing(10)
+        info_layout.setContentsMargins(12, 10, 12, 10)
+        info_layout.setSpacing(8)
 
         self.info_title = QLabel("TOPOLOGICAL & NETWORK SUMMARY")
         info_layout.addWidget(self.info_title)
@@ -108,10 +150,10 @@ class OverviewPage(QWidget):
         self.lbl_cio_summary = QLabel("Common-Input Entities: 0 multi-wallet clusters")
         info_layout.addWidget(self.lbl_cio_summary)
 
-        info_layout.addStretch()
-        sec_layout.addWidget(self.info_frame, 1)
+        right_panel.addWidget(self.info_frame)
+        sec_layout.addLayout(right_panel, 1)
 
-        self.layout.addLayout(sec_layout)
+        self.layout.addLayout(sec_layout, 1)
 
         self.content_scroll.setWidget(content_widget)
         main_layout.addWidget(self.content_scroll)
@@ -127,7 +169,7 @@ class OverviewPage(QWidget):
             border: 1px solid {THEME_COLORS['border']};
             border-left: 4px solid {THEME_COLORS['accent_blue']};
             border-radius: 6px;
-            padding: 12px;
+            padding: 10px;
         """)
         self.banner_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
         self.banner_sub.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
@@ -136,22 +178,20 @@ class OverviewPage(QWidget):
             background-color: {THEME_COLORS['bg_card']};
             border: 1px solid {THEME_COLORS['border']};
             border-radius: 8px;
-            padding: 14px;
         """)
-        self.tbl_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.tbl_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
 
         self.info_frame.setStyleSheet(f"""
             background-color: {THEME_COLORS['bg_card']};
             border: 1px solid {THEME_COLORS['border']};
             border-radius: 8px;
-            padding: 14px;
         """)
-        self.info_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.info_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
 
-        self.lbl_graph_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
-        self.lbl_geo_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
-        self.lbl_model_backend.setStyleSheet(f"color: {THEME_COLORS['accent_blue']}; font-size: 12px; font-weight: 600;")
-        self.lbl_cio_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
+        self.lbl_graph_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+        self.lbl_geo_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+        self.lbl_model_backend.setStyleSheet(f"color: {THEME_COLORS['accent_blue']}; font-size: 11px; font-weight: 600;")
+        self.lbl_cio_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
 
     def update_data(self, pipeline):
         """Populate overview dashboard from executed pipeline state."""
@@ -179,13 +219,72 @@ class OverviewPage(QWidget):
         crit_cnt = sum(1 for a in pipeline.alerts if a.priority.value in ["Critical", "High"])
         self.kpi_critical.set_value(str(crit_cnt))
 
+        # 1. Update Activity Timeline
+        timestamps = []
+        for r in pipeline.records:
+            if r.timestamp:
+                ts_str = str(r.timestamp).replace("Z", "").replace(" ", "T")
+                timestamps.append(ts_str)
+
+        if timestamps:
+            timestamps.sort()
+            n_buckets = min(8, len(timestamps))
+            if n_buckets > 1:
+                bucket_size = len(timestamps) / n_buckets
+                bucket_data = []
+                for b in range(n_buckets):
+                    start_idx = int(b * bucket_size)
+                    end_idx = int(min(len(timestamps), (b + 1) * bucket_size))
+                    t_label = timestamps[start_idx].split("T")[-1][:5] if "T" in timestamps[start_idx] else timestamps[start_idx][-5:]
+                    count = end_idx - start_idx
+                    bucket_data.append((t_label, float(count)))
+                self.activity_chart.set_data(bucket_data)
+            else:
+                self.activity_chart.set_data([(timestamps[0][:10], float(len(timestamps)))])
+        else:
+            self.activity_chart.set_data([])
+
+        # 2. Update Risk Donut Distribution
+        crit_risk = sum(1 for e in pipeline.entities.values() if e.risk_score >= 75)
+        high_risk = sum(1 for e in pipeline.entities.values() if 50 <= e.risk_score < 75)
+        med_risk = sum(1 for e in pipeline.entities.values() if 25 <= e.risk_score < 50)
+        low_risk = sum(1 for e in pipeline.entities.values() if e.risk_score < 25)
+        self.risk_donut.set_data([
+            ("Critical (>=75)", crit_risk, THEME_COLORS["accent_red"]),
+            ("High (50-74)", high_risk, THEME_COLORS["accent_orange"]),
+            ("Medium (25-49)", med_risk, THEME_COLORS["accent_amber"]),
+            ("Low (<25)", low_risk, THEME_COLORS["accent_emerald"]),
+        ])
+
+        # 3. Update Alert Priority Distribution
+        p_crit = sum(1 for a in pipeline.alerts if a.priority.value == "Critical")
+        p_high = sum(1 for a in pipeline.alerts if a.priority.value == "High")
+        p_med = sum(1 for a in pipeline.alerts if a.priority.value == "Medium")
+        p_low = sum(1 for a in pipeline.alerts if a.priority.value == "Low")
+        self.priority_chart.set_data([
+            ("Critical", p_crit, THEME_COLORS["accent_red"]),
+            ("High", p_high, THEME_COLORS["accent_orange"]),
+            ("Medium", p_med, THEME_COLORS["accent_amber"]),
+            ("Low", p_low, THEME_COLORS["accent_emerald"]),
+        ])
+
+        # 4. Update Pattern Breakdown
+        pattern_counts = {}
+        for a in pipeline.alerts:
+            p = a.pattern or "Unspecified"
+            pattern_counts[p] = pattern_counts.get(p, 0) + 1
+        sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)[:4]
+        colors = [THEME_COLORS["accent_red"], THEME_COLORS["accent_orange"], THEME_COLORS["accent_purple"], THEME_COLORS["accent_blue"]]
+        pattern_data = [(name, count, colors[i % len(colors)]) for i, (name, count) in enumerate(sorted_patterns)]
+        self.pattern_chart.set_data(pattern_data)
+
         # Update Leads Table
         self.leads_table.setRowCount(0)
         for row_idx, a in enumerate(pipeline.alerts[:10]):
             self.leads_table.insertRow(row_idx)
             self.leads_table.setItem(row_idx, 0, QTableWidgetItem(a.priority.value))
             self.leads_table.setItem(row_idx, 1, QTableWidgetItem(a.entity_id))
-            self.leads_table.setItem(row_idx, 2, QTableWidgetItem(f"{a.risk_score}/100"))
+            self.leads_table.setItem(row_idx, 2, QTableWidgetItem(f"{a.risk_score:.1f}/100"))
             self.leads_table.setItem(row_idx, 3, QTableWidgetItem(a.pattern))
             self.leads_table.setItem(row_idx, 4, QTableWidgetItem(f"{int(a.confidence * 100)}%"))
 
@@ -197,3 +296,11 @@ class OverviewPage(QWidget):
 
         cio_clusters = sum(1 for e in pipeline.entities.values() if len(e.addresses) > 1)
         self.lbl_cio_summary.setText(f"Common-Input Entities: {cio_clusters} multi-wallet heuristic clusters")
+        self.pipeline = pipeline
+
+    def _open_lead_details(self, index):
+        row = index.row()
+        if hasattr(self, "pipeline") and self.pipeline and row < len(self.pipeline.alerts):
+            alert = self.pipeline.alerts[row]
+            dialog = AlertDetailsDialog(alert, parent=self)
+            dialog.exec()

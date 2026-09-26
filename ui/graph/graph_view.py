@@ -138,16 +138,16 @@ class ForensicGraphView(QGraphicsView):
         nodes = sorted(nx_graph.nodes(), key=lambda n: nx_graph.degree(n), reverse=True)[:max_nodes]
         subgraph = nx_graph.subgraph(nodes)
 
-        # Circular / multi-tier layout calculation
+        # Multi-tier radial layout calculation with comfortable node spacing
         node_positions = {}
         total = len(nodes)
-        radius_step = 60
+        radius_step = 95
         angle_step = (2 * math.pi) / max(1, total)
 
         for i, node in enumerate(nodes):
-            tier = (i % 4) + 1
-            rad = tier * radius_step + 40
-            theta = i * angle_step * 2.3
+            tier = (i % 5) + 1
+            rad = tier * radius_step + 60
+            theta = i * angle_step * 2.1
             x = rad * math.cos(theta)
             y = rad * math.sin(theta)
             node_positions[node] = (x, y)
@@ -173,8 +173,7 @@ class ForensicGraphView(QGraphicsView):
                 self.scene.addItem(edge_item)
                 self.edge_items.append(edge_item)
 
-        self.setSceneRect(self.scene.itemsBoundingRect().adjusted(-60, -60, 60, 60))
-        self.fitInView(self.sceneRect(), Qt.KeepAspectRatio)
+        self.fit_to_view()
 
     def wheelEvent(self, event: QWheelEvent):
         """Smooth mouse-wheel zoom."""
@@ -232,3 +231,40 @@ class ForensicGraphView(QGraphicsView):
         for edge in self.edge_items:
             edge.setOpacity(1.0)
             edge.setPen(QPen(edge.base_color, 1.5))
+
+    def fit_to_view(self):
+        """Fit entire graph bounding rect within current viewport."""
+        rect = self.scene.itemsBoundingRect().adjusted(-40, -40, 40, 40)
+        if not rect.isEmpty():
+            self.setSceneRect(rect)
+            self.fitInView(rect, Qt.KeepAspectRatio)
+
+    def highlight_taint(self, taint_scores: Dict[str, float]):
+        """Visually color and highlight nodes based on seed propagation taint scores."""
+        for nid, item in self.node_items.items():
+            taint = taint_scores.get(nid, 0.0)
+            if taint > 0.05:
+                item.setOpacity(1.0)
+                if taint >= 0.7:
+                    pen_color = QColor(THEME_COLORS["accent_red"])
+                    pen_width = 3.5
+                elif taint >= 0.3:
+                    pen_color = QColor(THEME_COLORS["accent_orange"])
+                    pen_width = 2.5
+                else:
+                    pen_color = QColor(THEME_COLORS["accent_amber"])
+                    pen_width = 2.0
+                item.setPen(QPen(pen_color, pen_width))
+            else:
+                item.setOpacity(0.2)
+                is_dark = theme_manager.is_dark()
+                item.setPen(QPen(QColor("#0F172A" if is_dark else "#CBD5E1"), 1))
+
+        for edge in self.edge_items:
+            u_t = taint_scores.get(edge.source.node_id, 0.0)
+            v_t = taint_scores.get(edge.target.node_id, 0.0)
+            if u_t > 0.05 and v_t > 0.05:
+                edge.setOpacity(1.0)
+                edge.setPen(QPen(QColor(THEME_COLORS["accent_orange"]), 2.0))
+            else:
+                edge.setOpacity(0.08)

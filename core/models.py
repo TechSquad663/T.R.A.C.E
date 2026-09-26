@@ -120,6 +120,49 @@ class Entity:
     reasons: List[str] = field(default_factory=list)
     top_contributing_features: List[Dict[str, Any]] = field(default_factory=list)
 
+    @property
+    def transactions(self) -> List[str]:
+        return self.txids
+
+    @property
+    def relay_ips(self) -> List[str]:
+        return self.ips
+
+    @property
+    def relay_countries(self) -> int:
+        return self.unique_countries
+
+    @property
+    def detected_patterns(self) -> List[str]:
+        return self.reasons
+
+    @property
+    def features(self) -> Dict[str, Any]:
+        return {
+            "transaction_count": self.transaction_count,
+            "total_in": self.total_in,
+            "total_out": self.total_out,
+            "velocity": self.velocity,
+            "burstiness": self.burstiness,
+            "fan_in_ratio": self.fan_in_ratio,
+            "fan_out_ratio": self.fan_out_ratio,
+            "unique_counterparties": self.unique_counterparties,
+            "unique_ips": self.unique_ips,
+            "unique_countries": self.unique_countries,
+            "degree": self.degree,
+            "in_degree": self.in_degree,
+            "out_degree": self.out_degree,
+            "pagerank": self.pagerank,
+            "betweenness": self.betweenness,
+            "clustering_coeff": self.clustering_coeff,
+            "anomaly_score": self.anomaly_score,
+            "model_probability": self.model_probability,
+            "cluster_id": self.cluster_id,
+            "risk_score": self.risk_score,
+            "confidence": self.confidence,
+        }
+
+
 
 @dataclass
 class Alert:

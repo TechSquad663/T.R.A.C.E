@@ -17,9 +17,20 @@ logger = logging.getLogger("TRACE.PDFReport")
 class ForensicPDFReportGenerator:
     """Generates 12-section offline PDF investigation reports for law enforcement / intelligence analysts."""
 
-    def __init__(self):
+    def __init__(self, default_output_path=None):
+        self.default_output_path = Path(default_output_path) if default_output_path else None
         self.styles = getSampleStyleSheet()
         self._init_custom_styles()
+
+    def build_report(
+        self,
+        docket: Dict[str, Any],
+        metadata: Optional[Dict[str, Any]] = None,
+        output_filepath: Optional[Path] = None,
+    ) -> Path:
+        """Alias for generate_report with flexible parameter signatures."""
+        out_path = Path(output_filepath) if output_filepath else (self.default_output_path or Path("lead_report.pdf"))
+        return self.generate_report(docket, out_path, dataset_meta=metadata)
 
     def _init_custom_styles(self):
         self.title_style = ParagraphStyle(

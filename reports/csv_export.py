@@ -3,7 +3,36 @@ import csv
 import logging
 from pathlib import Path
 from typing import List, Union
-from core.models import Alert, Entity
+from core.models import Alert, Entity, TransactionRecord
+
+
+def export_transactions_to_csv(transactions: List[TransactionRecord], output_path: Union[str, Path]):
+    """Export canonical transaction records to standard CSV."""
+    p = Path(output_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "txid", "timestamp", "src_ip", "dst_ip", "src_port", "dst_port",
+        "input_count", "output_count", "total_output_btc", "fee_btc", "geo_country", "asn"
+    ]
+    with open(p, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for t in transactions:
+            writer.writerow({
+                "txid": t.txid,
+                "timestamp": t.timestamp,
+                "src_ip": t.src_ip,
+                "dst_ip": t.dst_ip,
+                "src_port": t.src_port,
+                "dst_port": t.dst_port,
+                "input_count": len(t.input_addresses),
+                "output_count": len(t.output_addresses),
+                "total_output_btc": t.total_output_amount,
+                "fee_btc": t.fee,
+                "geo_country": t.geo_country,
+                "asn": t.asn,
+            })
+
 
 logger = logging.getLogger("TRACE.CSVExport")
 

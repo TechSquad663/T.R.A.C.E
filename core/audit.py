@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger("TRACE.Audit")
 
@@ -33,7 +33,7 @@ class AuditLogger:
             
     def log_action(self, analyst_id: str, action_type: str, target_entity_id: str = "", details: Dict[str, Any] = None):
         """Log a specific action to the audit trail."""
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat()
         if details is None:
             details = {}
             
