@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QFrame, QMessageBox
 )
 from PySide6.QtCore import Qt
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from core.models import InvestigationCase
 from core.enums import PriorityLevel, InvestigationStatus
 from .investigation_details import CaseDetailsDialog
@@ -24,17 +24,14 @@ class InvestigationsPage(QWidget):
         # Header Title & New Case Button
         header_box = QHBoxLayout()
         title_box = QVBoxLayout()
-        title = QLabel("INVESTIGATION WORKSPACE & CASE DOCKETS")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Manage forensic case files, record analyst corroboration notes, and attach evidence leads.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("INVESTIGATION WORKSPACE & CASE DOCKETS")
+        self.subtitle = QLabel("Manage forensic case files, record analyst corroboration notes, and attach evidence leads.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         header_box.addLayout(title_box)
         header_box.addStretch()
 
         self.btn_new_case = QPushButton("➕ Create New Case")
-        self.btn_new_case.setStyleSheet("background-color: #2563EB; color: white; padding: 8px 18px; border-radius: 6px; font-weight: 700;")
         self.btn_new_case.clicked.connect(self._create_new_case)
         header_box.addWidget(self.btn_new_case)
 
@@ -54,28 +51,50 @@ class InvestigationsPage(QWidget):
         self.cases: list[InvestigationCase] = []
         self._init_sample_cases()
 
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update element styling according to active theme."""
+        is_dark = theme_manager.is_dark()
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.btn_new_case.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME_COLORS['accent_blue']};
+                color: #FFFFFF;
+                padding: 8px 18px;
+                border: none;
+                border-radius: 6px;
+                font-weight: 700;
+            }}
+            QPushButton:hover {{
+                background-color: {"#1D4ED8" if is_dark else "#0369A1"};
+            }}
+        """)
+
     def _init_sample_cases(self):
         """Populate initial baseline cases."""
         now = datetime.now(timezone.utc).isoformat()
         c1 = InvestigationCase(
-            case_id="CASE-2026-001",
-            title="Rapid Peeling Chain & Multi-IP Relay Inquiry",
-            subject_entity_id="ENT_CIO_fanout",
-            priority=PriorityLevel.HIGH,
-            status=InvestigationStatus.UNDER_REVIEW,
-            created_at=now,
-            updated_at=now,
-            analyst_notes="Identified rapid fund dispersion into 16 disparate destination wallets via Hetzner AS24940 nodes.",
-        )
-        c2 = InvestigationCase(
-            case_id="CASE-2026-002",
-            title="Dormant UTXO Activation Triage",
-            subject_entity_id="ENT_WAL_dormant",
+            case_id="CAS-2026-081",
+            title="High-Fanout Clustering around Exchange Gateway",
+            subject_entity_id="ENT_WAL_3zTF",
             priority=PriorityLevel.CRITICAL,
             status=InvestigationStatus.OPEN,
             created_at=now,
             updated_at=now,
-            analyst_notes="Prolonged 2-year dormant entity activated, transferring significant volume across jurisdictions.",
+            analyst_notes="Rapid multi-hop disbursement observed following temporal burst. Correlation with AS13335 relay nodes.",
+        )
+        c2 = InvestigationCase(
+            case_id="CAS-2026-082",
+            title="Dormant Wallet Reactivation & Multi-Country Relay",
+            subject_entity_id="ENT_WAL_7kLP",
+            priority=PriorityLevel.HIGH,
+            status=InvestigationStatus.UNDER_REVIEW,
+            created_at=now,
+            updated_at=now,
+            analyst_notes="Entity inactive for >180 days reactivated with high volume broadcast across 4 geographic regions.",
         )
         self.cases = [c1, c2]
         self._populate_table()
@@ -92,26 +111,26 @@ class InvestigationsPage(QWidget):
             self.cases_table.setItem(i, 5, QTableWidgetItem(c.updated_at[:19]))
 
     def _create_new_case(self):
+        cid = f"CAS-2026-{uuid.uuid4().hex[:4].upper()}"
         now = datetime.now(timezone.utc).isoformat()
-        cid = f"CASE-{datetime.now().year}-{len(self.cases) + 1:03d}"
         new_case = InvestigationCase(
             case_id=cid,
-            title="New Lead Investigation",
-            subject_entity_id="Unassigned",
+            title="New Investigative Docket",
+            subject_entity_id="ENT_WAL_PENDING",
             priority=PriorityLevel.MEDIUM,
             status=InvestigationStatus.OPEN,
             created_at=now,
             updated_at=now,
+            analyst_notes="Case initiated.",
         )
-        dialog = CaseDetailsDialog(new_case, self)
-        if dialog.exec():
-            self.cases.append(new_case)
-            self._populate_table()
+        self.cases.insert(0, new_case)
+        self._populate_table()
+        QMessageBox.information(self, "Case Docket Created", f"New case dossier {cid} created successfully.")
 
     def _open_case_details(self, index):
         row = index.row()
         if row < len(self.cases):
             case = self.cases[row]
-            dialog = CaseDetailsDialog(case, self)
+            dialog = CaseDetailsDialog(case, parent=self)
             if dialog.exec():
                 self._populate_table()

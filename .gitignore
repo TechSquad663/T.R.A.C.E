@@ -35,6 +35,7 @@ data/exports/*.csv
 data/exports/*.json
 data/processed/*.parquet
 data/processed/*.duckdb
+*.db
 
 # IDE & OS
 .vscode/

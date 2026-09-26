@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QFrame
 )
 from PySide6.QtCore import Qt
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from core.models import TransactionRecord
 from .transaction_details import TransactionDetailsDialog
 
@@ -20,12 +20,10 @@ class TransactionPage(QWidget):
 
         # Header Title
         title_box = QVBoxLayout()
-        title = QLabel("TRANSACTION EXPLORER & LEDGER CORRELATION")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Search cryptographic TXIDs, inspect P2P broadcast endpoints, and trace multi-input spending.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("TRANSACTION EXPLORER & LEDGER CORRELATION")
+        self.subtitle = QLabel("Search cryptographic TXIDs, inspect P2P broadcast endpoints, and trace multi-input spending.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         layout.addLayout(title_box)
 
         # Search Bar
@@ -50,6 +48,14 @@ class TransactionPage(QWidget):
         layout.addWidget(self.tx_table)
 
         self.records: list[TransactionRecord] = []
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update element styling according to active theme."""
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
 
     def update_data(self, pipeline):
         if not pipeline:

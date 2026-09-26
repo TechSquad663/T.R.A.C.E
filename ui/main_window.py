@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt, QThread, Signal
 from config.settings import get_settings
 from pipeline.investigation_pipeline import InvestigationPipeline
 from generator.synthetic_dataset import SyntheticBitcoinTrafficGenerator
+from app.theme import THEME_COLORS, theme_manager
 
 from .sidebar import Sidebar
 from .header import Header
@@ -182,7 +183,7 @@ class MainWindow(QMainWindow):
         self.progress_dialog.setWindowModality(Qt.WindowModal)
         self.progress_dialog.setMinimumDuration(0)
         self.progress_dialog.setValue(0)
-        self.progress_dialog.setStyleSheet("QProgressDialog { background-color: #0B0F19; color: #F8FAFC; }")
+        self.progress_dialog.setStyleSheet(f"QProgressDialog {{ background-color: {THEME_COLORS['bg_dark']}; color: {THEME_COLORS['text_primary']}; }}")
 
         # Worker Thread
         self.worker_thread = PipelineWorkerThread(self.pipeline, data_source, ground_truth)

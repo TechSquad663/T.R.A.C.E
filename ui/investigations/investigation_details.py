@@ -78,7 +78,7 @@ class CaseDetailsDialog(QDialog):
         btn_box.addWidget(btn_cancel)
 
         btn_save = QPushButton("Save Case File")
-        btn_save.setStyleSheet("background-color: #2563EB; color: white; padding: 6px 16px; border-radius: 4px; font-weight: 700;")
+        btn_save.setStyleSheet(f"background-color: {THEME_COLORS['accent_blue']}; color: white; padding: 6px 16px; border-radius: 4px; font-weight: 700;")
         btn_save.clicked.connect(self._save_case)
         btn_box.addWidget(btn_save)
 

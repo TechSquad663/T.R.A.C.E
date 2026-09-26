@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QPushButton
 )
 from PySide6.QtCore import Qt, Signal
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from core.models import Alert
 from .alert_details import AlertDetailsDialog
 
@@ -22,18 +22,15 @@ class AlertsPage(QWidget):
 
         # Header Title
         title_box = QVBoxLayout()
-        title = QLabel("RANKED INVESTIGATIVE LEADS & ALERTS")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Triage queue prioritizing entities exhibiting statistically severe behavioral deviations.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("RANKED INVESTIGATIVE LEADS & ALERTS")
+        self.subtitle = QLabel("Triage queue prioritizing entities exhibiting statistically severe behavioral deviations.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         layout.addLayout(title_box)
 
         # Filters Bar
-        filter_bar = QFrame()
-        filter_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 8px 12px;")
-        fb_layout = QHBoxLayout(filter_bar)
+        self.filter_bar = QFrame()
+        fb_layout = QHBoxLayout(self.filter_bar)
         fb_layout.setContentsMargins(6, 4, 6, 4)
         fb_layout.setSpacing(12)
 
@@ -50,7 +47,7 @@ class AlertsPage(QWidget):
         self.search_alert.textChanged.connect(self._apply_filters)
         fb_layout.addWidget(self.search_alert)
 
-        layout.addWidget(filter_bar)
+        layout.addWidget(self.filter_bar)
 
         # Alerts Table
         self.alerts_table = QTableWidget(0, 8)
@@ -64,6 +61,15 @@ class AlertsPage(QWidget):
         layout.addWidget(self.alerts_table)
 
         self.alerts: list[Alert] = []
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update element styling according to active theme."""
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.filter_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 8px 12px;")
 
     def update_data(self, pipeline):
         if not pipeline:

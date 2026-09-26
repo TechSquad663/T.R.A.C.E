@@ -1,16 +1,16 @@
-"""Settings and System Administration Page."""
+"""Settings and System Administration Page with Theme Configuration."""
 from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QDoubleSpinBox, QPushButton,
-    QFrame, QTextEdit, QMessageBox
+    QFrame, QTextEdit, QMessageBox, QComboBox
 )
 from PySide6.QtCore import Qt
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from config.settings import get_settings
 
 
 class SettingsPage(QWidget):
-    """Configuration, risk weights tuning, and offline health audit page."""
+    """Configuration, risk weights tuning, theme selection, and offline health audit page."""
 
     def __init__(self):
         super().__init__()
@@ -20,23 +20,48 @@ class SettingsPage(QWidget):
 
         # Header Title
         title_box = QVBoxLayout()
-        title = QLabel("SYSTEM CONFIGURATION & RISK ENGINE WEIGHTS")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Tune multi-signal risk fusion coefficients and review air-gapped system integrity logs.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("SYSTEM CONFIGURATION & WORKSTATION SETTINGS")
+        self.subtitle = QLabel("Configure display themes, tune multi-signal risk fusion coefficients, and review air-gapped system logs.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         layout.addLayout(title_box)
 
+        # Theme Configuration Card
+        self.theme_card = QFrame()
+        tc_layout = QVBoxLayout(self.theme_card)
+        tc_layout.setSpacing(10)
+
+        self.tc_title = QLabel("🎨 DISPLAY & WORKSTATION THEME")
+        tc_layout.addWidget(self.tc_title)
+
+        self.tc_desc = QLabel(
+            "Select visual presentation mode. Dark Workstation provides low-glare focus for extended forensics sessions. "
+            "Light Analyst delivers high contrast for briefing rooms, reports verification, and daylight operations."
+        )
+        tc_layout.addWidget(self.tc_desc)
+
+        th_row = QHBoxLayout()
+        th_row.setSpacing(12)
+        th_row.addWidget(QLabel("Active Theme Mode:"))
+
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem("🌙 Dark Workstation (Deep Obsidian)", "dark")
+        self.theme_combo.addItem("☀️ Light Analyst (Crisp Slate)", "light")
+        self.theme_combo.setCurrentIndex(0 if theme_manager.is_dark() else 1)
+        self.theme_combo.currentIndexChanged.connect(self._on_theme_combo_changed)
+        th_row.addWidget(self.theme_combo)
+        th_row.addStretch()
+
+        tc_layout.addLayout(th_row)
+        layout.addWidget(self.theme_card)
+
         # Risk Fusion Weights Card
-        weights_card = QFrame()
-        weights_card.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 8px; padding: 14px;")
-        wc_layout = QVBoxLayout(weights_card)
+        self.weights_card = QFrame()
+        wc_layout = QVBoxLayout(self.weights_card)
         wc_layout.setSpacing(10)
 
-        wc_title = QLabel("⚖️ RISK FUSION ENGINE COEFFICIENTS (Must sum to 1.00)")
-        wc_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['accent_blue']};")
-        wc_layout.addWidget(wc_title)
+        self.wc_title = QLabel("⚖️ RISK FUSION ENGINE COEFFICIENTS (Must sum to 1.00)")
+        wc_layout.addWidget(self.wc_title)
 
         spin_box = QHBoxLayout()
         spin_box.setSpacing(16)
@@ -83,49 +108,97 @@ class SettingsPage(QWidget):
 
         wc_layout.addLayout(spin_box)
 
-        btn_save_weights = QPushButton("Save Risk Weights")
-        btn_save_weights.setStyleSheet("background-color: #2563EB; color: white; padding: 6px 16px; border-radius: 4px; font-weight: 700;")
-        btn_save_weights.clicked.connect(self._save_weights)
-        wc_layout.addWidget(btn_save_weights, alignment=Qt.AlignRight)
+        self.btn_save_weights = QPushButton("Save Risk Weights")
+        self.btn_save_weights.clicked.connect(self._save_weights)
+        wc_layout.addWidget(self.btn_save_weights, alignment=Qt.AlignRight)
 
-        layout.addWidget(weights_card)
+        layout.addWidget(self.weights_card)
 
         # Local GeoIP Status Card
-        geo_card = QFrame()
-        geo_card.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 8px; padding: 14px;")
-        gc_layout = QVBoxLayout(geo_card)
+        self.geo_card = QFrame()
+        gc_layout = QVBoxLayout(self.geo_card)
         gc_layout.setSpacing(6)
 
-        gc_title = QLabel("🌐 LOCAL GEOIP & ASN ENRICHMENT STATUS")
-        gc_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['accent_emerald']};")
-        gc_layout.addWidget(gc_title)
+        self.gc_title = QLabel("🌐 LOCAL GEOIP & ASN ENRICHMENT STATUS")
+        gc_layout.addWidget(self.gc_title)
 
         settings = get_settings()
         geoip_dir = settings.GEOIP_DIR
         has_geoip = any(geoip_dir.glob("*.mmdb")) or any(geoip_dir.glob("*.csv"))
         status_text = "Local GeoIP Database Loaded (data/geoip/)" if has_geoip else "GeoIP enrichment unavailable (Preserving dataset country/asn metadata offline; no external lookups)"
-        gc_desc = QLabel(status_text)
-        gc_desc.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
-        gc_layout.addWidget(gc_desc)
+        self.gc_desc = QLabel(status_text)
+        gc_layout.addWidget(self.gc_desc)
 
-        layout.addWidget(geo_card)
+        layout.addWidget(self.geo_card)
 
         # System Log Tail
-        log_lbl = QLabel("FORENSIC APPLICATION LOG STREAM (logs/trace.log)")
-        log_lbl.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']}; margin-top: 4px;")
-        layout.addWidget(log_lbl)
+        self.log_lbl = QLabel("FORENSIC APPLICATION LOG STREAM (logs/trace.log)")
+        layout.addWidget(self.log_lbl)
 
         self.log_viewer = QTextEdit()
         self.log_viewer.setReadOnly(True)
-        self.log_viewer.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; font-family: monospace; font-size: 11px;")
         layout.addWidget(self.log_viewer)
 
         # Refresh log button
-        btn_refresh_log = QPushButton("🔄 Refresh Log Stream")
-        btn_refresh_log.clicked.connect(self._refresh_log)
-        layout.addWidget(btn_refresh_log, alignment=Qt.AlignRight)
+        self.btn_refresh_log = QPushButton("🔄 Refresh Log Stream")
+        self.btn_refresh_log.clicked.connect(self._refresh_log)
+        layout.addWidget(self.btn_refresh_log, alignment=Qt.AlignRight)
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(self._on_theme_manager_changed)
 
         self._refresh_log()
+
+    def _on_theme_combo_changed(self, index: int):
+        theme_name = self.theme_combo.currentData()
+        if theme_name:
+            theme_manager.set_theme(theme_name)
+
+    def _on_theme_manager_changed(self, theme_name: str):
+        # Sync combo selection
+        self.theme_combo.blockSignals(True)
+        idx = 0 if theme_name == "dark" else 1
+        self.theme_combo.setCurrentIndex(idx)
+        self.theme_combo.blockSignals(False)
+        self.refresh_theme()
+
+    def refresh_theme(self):
+        """Update element styling according to active theme."""
+        is_dark = theme_manager.is_dark()
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+
+        # Theme card styling
+        self.theme_card.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 8px; padding: 14px;")
+        self.tc_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['accent_purple']};")
+        self.tc_desc.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+
+        # Weights card styling
+        self.weights_card.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 8px; padding: 14px;")
+        self.wc_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['accent_blue']};")
+        self.btn_save_weights.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME_COLORS['accent_blue']};
+                color: white;
+                padding: 6px 16px;
+                border: none;
+                border-radius: 4px;
+                font-weight: 700;
+            }}
+            QPushButton:hover {{
+                background-color: {"#1D4ED8" if is_dark else "#0369A1"};
+            }}
+        """)
+
+        # Geo card styling
+        self.geo_card.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 8px; padding: 14px;")
+        self.gc_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['accent_emerald']};")
+        self.gc_desc.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+
+        # Log viewer styling
+        self.log_lbl.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']}; margin-top: 4px;")
+        self.log_viewer.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; color: {THEME_COLORS['text_primary']}; font-family: monospace; font-size: 11px;")
+        self.btn_refresh_log.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border_light']}; color: {THEME_COLORS['text_primary']}; padding: 6px 14px; border-radius: 4px;")
 
     def _save_weights(self):
         tot = self.spin_model.value() + self.spin_anomaly.value() + self.spin_graph.value() + self.spin_network.value()

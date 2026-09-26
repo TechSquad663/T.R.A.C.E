@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QHeaderView, QFrame
 )
 from PySide6.QtCore import Qt
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from core.models import Entity
 from .entity_details import EntityDetailsDialog
 
@@ -20,12 +20,10 @@ class EntityPage(QWidget):
 
         # Header Title
         title_box = QVBoxLayout()
-        title = QLabel("ENTITY INTELLIGENCE & HEURISTIC CLUSTERING")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Resolved entities grouped via Common Input Ownership (CIO) heuristic with behavioral profiles.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("ENTITY INTELLIGENCE & HEURISTIC CLUSTERING")
+        self.subtitle = QLabel("Resolved entities grouped via Common Input Ownership (CIO) heuristic with behavioral profiles.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         layout.addLayout(title_box)
 
         # Search Bar
@@ -47,6 +45,14 @@ class EntityPage(QWidget):
 
         self.entities: list[Entity] = []
 
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update element styling according to active theme."""
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+
     def update_data(self, pipeline):
         if not pipeline:
             return
@@ -65,7 +71,7 @@ class EntityPage(QWidget):
             self.entity_table.setItem(i, 3, QTableWidgetItem(f"{e.risk_score}/100"))
             self.entity_table.setItem(i, 4, QTableWidgetItem(f"{e.model_probability:.2f}"))
             self.entity_table.setItem(i, 5, QTableWidgetItem(f"{e.anomaly_score:.2f}"))
-            self.entity_table.setItem(i, 6, QTableWidgetItem(str(e.transaction_count)))
+            self.entity_table.setItem(i, 6, QTableWidgetItem(str(len(e.txids) or e.transaction_count)))
             self.entity_table.setItem(i, 7, QTableWidgetItem(str(len(e.ips))))
 
     def _filter_entities(self, query: str):

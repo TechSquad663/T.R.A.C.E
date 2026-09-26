@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 from config.settings import get_settings
 from config.logging_config import setup_logging
-from .theme import DARK_STYLESHEET
+from .theme import DARK_STYLESHEET, theme_manager, get_stylesheet
 
 logger = logging.getLogger("TRACE.App")
 
@@ -27,7 +27,10 @@ class TRACEApplication:
         self.app.setApplicationName(self.settings.APP_NAME)
         self.app.setApplicationVersion(self.settings.VERSION)
         self.app.setOrganizationName("NTRO")
-        self.app.setStyleSheet(DARK_STYLESHEET)
+        
+        initial_theme = getattr(self.settings, "THEME", "dark")
+        self.app.setStyleSheet(get_stylesheet(initial_theme))
+        theme_manager.current_theme = initial_theme
 
     def exec(self):
         return self.app.exec()

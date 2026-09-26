@@ -90,5 +90,5 @@ class AlertDetailsDialog(QDialog):
         # Close button
         btn_close = QPushButton("Close")
         btn_close.clicked.connect(self.accept)
-        btn_close.setStyleSheet("background-color: #1F2937; border: 1px solid #374151; color: white; padding: 6px 16px; border-radius: 4px;")
+        btn_close.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border_light']}; color: {THEME_COLORS['text_primary']}; padding: 6px 16px; border-radius: 4px;")
         layout.addWidget(btn_close, alignment=Qt.AlignRight)

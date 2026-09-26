@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QProgressBar, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from ui.components import KPICard
 
 
@@ -23,12 +23,10 @@ class IngestionPage(QWidget):
         # Header Info
         header_box = QHBoxLayout()
         title_box = QVBoxLayout()
-        title = QLabel("DATASET INGESTION & QUALITY VALIDATION")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Supports offline bulk Bitcoin P2P and transaction metadata in CSV, JSON, and XML formats.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("DATASET INGESTION & QUALITY VALIDATION")
+        self.subtitle = QLabel("Supports offline bulk Bitcoin P2P and transaction metadata in CSV, JSON, and XML formats.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         header_box.addLayout(title_box)
         header_box.addStretch()
 
@@ -37,19 +35,15 @@ class IngestionPage(QWidget):
         btn_box.setSpacing(10)
 
         self.btn_csv = QPushButton("📄 Import CSV")
-        self.btn_csv.setStyleSheet(f"background-color: #1F2937; border: 1px solid #374151; color: white; padding: 8px 14px; border-radius: 6px; font-weight: 600;")
         self.btn_csv.clicked.connect(lambda: self._open_file_dialog("csv"))
 
         self.btn_json = QPushButton("{ } Import JSON")
-        self.btn_json.setStyleSheet(f"background-color: #1F2937; border: 1px solid #374151; color: white; padding: 8px 14px; border-radius: 6px; font-weight: 600;")
         self.btn_json.clicked.connect(lambda: self._open_file_dialog("json"))
 
         self.btn_xml = QPushButton("📋 Import XML")
-        self.btn_xml.setStyleSheet(f"background-color: #1F2937; border: 1px solid #374151; color: white; padding: 8px 14px; border-radius: 6px; font-weight: 600;")
         self.btn_xml.clicked.connect(lambda: self._open_file_dialog("xml"))
 
         self.btn_generate = QPushButton("⚡ Generate Demo Dataset")
-        self.btn_generate.setStyleSheet(f"background-color: #059669; border: none; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 700;")
         self.btn_generate.clicked.connect(self._generate_demo)
 
         btn_box.addWidget(self.btn_csv)
@@ -63,10 +57,10 @@ class IngestionPage(QWidget):
         # Quality Metrics Banner
         kpi_box = QHBoxLayout()
         kpi_box.setSpacing(12)
-        self.card_total = KPICard("Total Records", "0", "Awaiting ingestion", THEME_COLORS["accent_blue"])
-        self.card_valid = KPICard("Valid Records", "0", "Passed all checks", THEME_COLORS["accent_emerald"])
-        self.card_quarantined = KPICard("Quarantined", "0", "Anomalous schema", THEME_COLORS["accent_amber"])
-        self.card_duplicates = KPICard("Duplicates", "0", "Identical TXIDs", THEME_COLORS["accent_orange"])
+        self.card_total = KPICard("Total Records", "0", "Awaiting ingestion", "#38BDF8")
+        self.card_valid = KPICard("Valid Records", "0", "Passed all checks", "#10B981")
+        self.card_quarantined = KPICard("Quarantined", "0", "Anomalous schema", "#F59E0B")
+        self.card_duplicates = KPICard("Duplicates", "0", "Identical TXIDs", "#F97316")
 
         kpi_box.addWidget(self.card_total)
         kpi_box.addWidget(self.card_valid)
@@ -76,32 +70,12 @@ class IngestionPage(QWidget):
 
         # File Status Card
         self.status_card = QFrame()
-        self.status_card.setStyleSheet(f"""
-            background-color: {THEME_COLORS['bg_card']};
-            border: 1px solid {THEME_COLORS['border']};
-            border-radius: 6px;
-            padding: 12px;
-        """)
         s_layout = QHBoxLayout(self.status_card)
         self.file_info_lbl = QLabel("Active Source: None selected")
-        self.file_info_lbl.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-weight: 600;")
         s_layout.addWidget(self.file_info_lbl)
         s_layout.addStretch()
 
         self.btn_run = QPushButton("🚀 Run Forensic Investigation")
-        self.btn_run.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #2563EB;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 20px;
-                font-weight: 700;
-                font-size: 13px;
-            }}
-            QPushButton:hover {{ background-color: #1D4ED8; }}
-            QPushButton:disabled {{ background-color: #1F2937; color: #4B5563; }}
-        """)
         self.btn_run.setEnabled(False)
         self.btn_run.clicked.connect(self._run_investigation)
         s_layout.addWidget(self.btn_run)
@@ -109,9 +83,8 @@ class IngestionPage(QWidget):
         layout.addWidget(self.status_card)
 
         # Validation Preview Table
-        preview_lbl = QLabel("INGESTED DATASET PREVIEW & FIELD QUALITY")
-        preview_lbl.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']}; margin-top: 6px;")
-        layout.addWidget(preview_lbl)
+        self.preview_lbl = QLabel("INGESTED DATASET PREVIEW & FIELD QUALITY")
+        layout.addWidget(self.preview_lbl)
 
         self.preview_table = QTableWidget(0, 7)
         self.preview_table.setHorizontalHeaderLabels([
@@ -125,6 +98,73 @@ class IngestionPage(QWidget):
         # Internal active payload
         self.active_data_source = None
         self.active_ground_truth = None
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update element styling according to current theme."""
+        is_dark = theme_manager.is_dark()
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+
+        btn_style = f"""
+            QPushButton {{
+                background-color: {THEME_COLORS['bg_card']};
+                border: 1px solid {THEME_COLORS['border_light']};
+                color: {THEME_COLORS['text_primary']};
+                padding: 8px 14px;
+                border-radius: 6px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME_COLORS['bg_card_alt']};
+                border-color: {THEME_COLORS['accent_blue']};
+            }}
+        """
+        self.btn_csv.setStyleSheet(btn_style)
+        self.btn_json.setStyleSheet(btn_style)
+        self.btn_xml.setStyleSheet(btn_style)
+
+        self.btn_generate.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #059669;
+                border: none;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-weight: 700;
+            }}
+            QPushButton:hover {{ background-color: #047857; }}
+        """)
+
+        self.status_card.setStyleSheet(f"""
+            background-color: {THEME_COLORS['bg_card']};
+            border: 1px solid {THEME_COLORS['border']};
+            border-radius: 6px;
+            padding: 12px;
+        """)
+        self.file_info_lbl.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-weight: 600;")
+
+        self.btn_run.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {THEME_COLORS['accent_blue']};
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-weight: 700;
+                font-size: 13px;
+            }}
+            QPushButton:hover {{ background-color: {"#1D4ED8" if is_dark else "#0369A1"}; }}
+            QPushButton:disabled {{
+                background-color: {THEME_COLORS['bg_card_alt']};
+                color: {THEME_COLORS['text_muted']};
+                border: 1px solid {THEME_COLORS['border']};
+            }}
+        """)
+
+        self.preview_lbl.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']}; margin-top: 6px;")
 
     def _open_file_dialog(self, ext: str):
         filters = {

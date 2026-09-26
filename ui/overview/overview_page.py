@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QScrollArea
 )
 from PySide6.QtCore import Qt
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from ui.components import KPICard, RiskBadge, EmptyStateWidget
 
 
@@ -34,36 +34,27 @@ class OverviewPage(QWidget):
         self.layout.setSpacing(20)
 
         # Header Info Banner
-        banner = QFrame()
-        banner.setStyleSheet(f"""
-            background-color: {THEME_COLORS['bg_card']};
-            border: 1px solid {THEME_COLORS['border']};
-            border-left: 4px solid {THEME_COLORS['accent_blue']};
-            border-radius: 6px;
-            padding: 12px;
-        """)
-        b_layout = QVBoxLayout(banner)
+        self.banner = QFrame()
+        b_layout = QVBoxLayout(self.banner)
         b_layout.setContentsMargins(8, 4, 8, 4)
         b_layout.setSpacing(2)
 
-        title = QLabel("ANALYTICAL INTELLIGENCE OVERVIEW (OFFLINE DATASET)")
-        title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Metrics derived exclusively from ingested metadata. Reflects behavioral deviations, graph centrality, and ML indicators.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        b_layout.addWidget(title)
-        b_layout.addWidget(subtitle)
-        self.layout.addWidget(banner)
+        self.banner_title = QLabel("ANALYTICAL INTELLIGENCE OVERVIEW (OFFLINE DATASET)")
+        self.banner_sub = QLabel("Metrics derived exclusively from ingested metadata. Reflects behavioral deviations, graph centrality, and ML indicators.")
+        b_layout.addWidget(self.banner_title)
+        b_layout.addWidget(self.banner_sub)
+        self.layout.addWidget(self.banner)
 
         # KPI Cards Grid
         kpi_grid = QGridLayout()
         kpi_grid.setSpacing(12)
 
-        self.kpi_records = KPICard("Validated Records", "0", "Ingested from offline feed", THEME_COLORS["accent_blue"])
-        self.kpi_wallets = KPICard("Resolved Wallets", "0", "Unique on-chain addresses", THEME_COLORS["accent_purple"])
-        self.kpi_ips = KPICard("Observed IPs", "0", "P2P broadcast nodes", THEME_COLORS["accent_cyan"])
-        self.kpi_entities = KPICard("Behavioral Entities", "0", "Resolved via CIO heuristic", THEME_COLORS["accent_emerald"])
-        self.kpi_anomalies = KPICard("Statistical Anomalies", "0", "Isolation Forest tail", THEME_COLORS["accent_amber"])
-        self.kpi_critical = KPICard("High-Priority Leads", "0", "Risk Score >= 65", THEME_COLORS["accent_red"])
+        self.kpi_records = KPICard("Validated Records", "0", "Ingested from offline feed", "#38BDF8")
+        self.kpi_wallets = KPICard("Resolved Wallets", "0", "Unique on-chain addresses", "#A855F7")
+        self.kpi_ips = KPICard("Observed IPs", "0", "P2P broadcast nodes", "#06B6D4")
+        self.kpi_entities = KPICard("Behavioral Entities", "0", "Resolved via CIO heuristic", "#10B981")
+        self.kpi_anomalies = KPICard("Statistical Anomalies", "0", "Isolation Forest tail", "#F59E0B")
+        self.kpi_critical = KPICard("High-Priority Leads", "0", "Risk Score >= 65", "#EF4444")
 
         kpi_grid.addWidget(self.kpi_records, 0, 0)
         kpi_grid.addWidget(self.kpi_wallets, 0, 1)
@@ -79,20 +70,13 @@ class OverviewPage(QWidget):
         sec_layout.setSpacing(16)
 
         # Left: Top Leads Table
-        tbl_frame = QFrame()
-        tbl_frame.setStyleSheet(f"""
-            background-color: {THEME_COLORS['bg_card']};
-            border: 1px solid {THEME_COLORS['border']};
-            border-radius: 8px;
-            padding: 14px;
-        """)
-        tbl_layout = QVBoxLayout(tbl_frame)
+        self.tbl_frame = QFrame()
+        tbl_layout = QVBoxLayout(self.tbl_frame)
         tbl_layout.setContentsMargins(8, 8, 8, 8)
         tbl_layout.setSpacing(8)
 
-        tbl_title = QLabel("TOP RANKED INVESTIGATIVE LEADS")
-        tbl_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        tbl_layout.addWidget(tbl_title)
+        self.tbl_title = QLabel("TOP RANKED INVESTIGATIVE LEADS")
+        tbl_layout.addWidget(self.tbl_title)
 
         self.leads_table = QTableWidget(0, 5)
         self.leads_table.setHorizontalHeaderLabels(["Priority", "Entity ID", "Risk", "Pattern", "Confidence"])
@@ -101,48 +85,73 @@ class OverviewPage(QWidget):
         self.leads_table.setEditTriggers(QTableWidget.NoEditTriggers)
         tbl_layout.addWidget(self.leads_table)
 
-        sec_layout.addWidget(tbl_frame, 2)
+        sec_layout.addWidget(self.tbl_frame, 2)
 
         # Right: Geo & Graph Summary Card
-        info_frame = QFrame()
-        info_frame.setStyleSheet(f"""
-            background-color: {THEME_COLORS['bg_card']};
-            border: 1px solid {THEME_COLORS['border']};
-            border-radius: 8px;
-            padding: 14px;
-        """)
-        info_layout = QVBoxLayout(info_frame)
+        self.info_frame = QFrame()
+        info_layout = QVBoxLayout(self.info_frame)
         info_layout.setContentsMargins(12, 12, 12, 12)
         info_layout.setSpacing(10)
 
-        info_title = QLabel("TOPOLOGICAL & NETWORK SUMMARY")
-        info_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        info_layout.addWidget(info_title)
+        self.info_title = QLabel("TOPOLOGICAL & NETWORK SUMMARY")
+        info_layout.addWidget(self.info_title)
 
         self.lbl_graph_summary = QLabel("Graph Topology: 0 nodes, 0 edges")
-        self.lbl_graph_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
         info_layout.addWidget(self.lbl_graph_summary)
 
         self.lbl_geo_summary = QLabel("Jurisdiction Diversity: 0 countries observed")
-        self.lbl_geo_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
         info_layout.addWidget(self.lbl_geo_summary)
 
         self.lbl_model_backend = QLabel("Supervised Engine: XGBoost (Tree Ensemble)")
-        self.lbl_model_backend.setStyleSheet(f"color: {THEME_COLORS['accent_blue']}; font-size: 12px; font-weight: 600;")
         info_layout.addWidget(self.lbl_model_backend)
 
         self.lbl_cio_summary = QLabel("Common-Input Entities: 0 multi-wallet clusters")
-        self.lbl_cio_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
         info_layout.addWidget(self.lbl_cio_summary)
 
         info_layout.addStretch()
-        sec_layout.addWidget(info_frame, 1)
+        sec_layout.addWidget(self.info_frame, 1)
 
         self.layout.addLayout(sec_layout)
 
         self.content_scroll.setWidget(content_widget)
         main_layout.addWidget(self.content_scroll)
         self.content_scroll.hide()
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update frames, labels, and table styling when theme changes."""
+        self.banner.setStyleSheet(f"""
+            background-color: {THEME_COLORS['bg_card']};
+            border: 1px solid {THEME_COLORS['border']};
+            border-left: 4px solid {THEME_COLORS['accent_blue']};
+            border-radius: 6px;
+            padding: 12px;
+        """)
+        self.banner_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.banner_sub.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+
+        self.tbl_frame.setStyleSheet(f"""
+            background-color: {THEME_COLORS['bg_card']};
+            border: 1px solid {THEME_COLORS['border']};
+            border-radius: 8px;
+            padding: 14px;
+        """)
+        self.tbl_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+
+        self.info_frame.setStyleSheet(f"""
+            background-color: {THEME_COLORS['bg_card']};
+            border: 1px solid {THEME_COLORS['border']};
+            border-radius: 8px;
+            padding: 14px;
+        """)
+        self.info_title.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+
+        self.lbl_graph_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
+        self.lbl_geo_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
+        self.lbl_model_backend.setStyleSheet(f"color: {THEME_COLORS['accent_blue']}; font-size: 12px; font-weight: 600;")
+        self.lbl_cio_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 12px;")
 
     def update_data(self, pipeline):
         """Populate overview dashboard from executed pipeline state."""

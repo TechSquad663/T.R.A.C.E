@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QFrame, QScrollArea, QPushButton
 )
 from PySide6.QtCore import Qt
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from core.models import Alert
 from core.constants import DISCLAIMER_TEXT
 
@@ -20,18 +20,15 @@ class EvidencePage(QWidget):
 
         # Header Title
         title_box = QVBoxLayout()
-        title = QLabel("STRUCTURED FORENSIC EVIDENCE CHAIN")
-        title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        subtitle = QLabel("Multi-layer evidentiary reconstruction linking network observations to blockchain settlement records.")
-        subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        title_box.addWidget(title)
-        title_box.addWidget(subtitle)
+        self.title = QLabel("STRUCTURED FORENSIC EVIDENCE CHAIN")
+        self.subtitle = QLabel("Multi-layer evidentiary reconstruction linking network observations to blockchain settlement records.")
+        title_box.addWidget(self.title)
+        title_box.addWidget(self.subtitle)
         layout.addLayout(title_box)
 
         # Entity Selector Bar
-        sel_bar = QFrame()
-        sel_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 8px 12px;")
-        sb_layout = QHBoxLayout(sel_bar)
+        self.sel_bar = QFrame()
+        sb_layout = QHBoxLayout(self.sel_bar)
         sb_layout.setContentsMargins(6, 4, 6, 4)
         sb_layout.setSpacing(12)
 
@@ -41,7 +38,7 @@ class EvidencePage(QWidget):
         self.entity_combo.currentIndexChanged.connect(self._on_entity_selected)
         sb_layout.addWidget(self.entity_combo)
         sb_layout.addStretch()
-        layout.addWidget(sel_bar)
+        layout.addWidget(self.sel_bar)
 
         # Evidence Chain Scroll Container
         self.scroll_area = QScrollArea()
@@ -57,13 +54,24 @@ class EvidencePage(QWidget):
         layout.addWidget(self.scroll_area)
 
         # Disclaimers at bottom
-        disc_lbl = QLabel(DISCLAIMER_TEXT)
-        disc_lbl.setStyleSheet(f"color: {THEME_COLORS['text_muted']}; font-size: 10px; font-style: italic; border-top: 1px solid {THEME_COLORS['border']}; padding-top: 8px;")
-        disc_lbl.setWordWrap(True)
-        layout.addWidget(disc_lbl)
+        self.disc_lbl = QLabel(DISCLAIMER_TEXT)
+        self.disc_lbl.setWordWrap(True)
+        layout.addWidget(self.disc_lbl)
 
         self.pipeline = None
         self.dockets = {}
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update element styling according to active theme."""
+        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.sel_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 8px 12px;")
+        self.disc_lbl.setStyleSheet(f"color: {THEME_COLORS['text_muted']}; font-size: 10px; font-style: italic; border-top: 1px solid {THEME_COLORS['border']}; padding-top: 8px;")
+        # Re-render current docket with refreshed colors
+        self._on_entity_selected(self.entity_combo.currentIndex())
 
     def update_data(self, pipeline):
         self.pipeline = pipeline
@@ -74,7 +82,7 @@ class EvidencePage(QWidget):
         for ent_id in pipeline.entities.keys():
             self.entity_combo.addItem(ent_id)
 
-    def _on_entity_selected(self, index):
+    def _on_entity_selected(self, index=0):
         ent_id = self.entity_combo.currentText()
         if not ent_id or ent_id not in self.dockets:
             return

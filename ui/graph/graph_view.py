@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPen, QBrush, QColor, QFont, QPainter, QWheelEvent, QMouseEvent
 from PySide6.QtCore import Qt, QPointF, QRectF, Signal
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 from core.constants import NODE_COLORS, EDGE_COLORS
 
 logger = logging.getLogger("TRACE.GraphView")
@@ -32,11 +32,9 @@ class GraphNodeItem(QGraphicsEllipseItem):
         color_hex = NODE_COLORS.get(node_type, "#94A3B8")
         self.base_color = QColor(color_hex)
         self.setBrush(QBrush(self.base_color))
-        self.setPen(QPen(QColor("#0F172A"), 2))
 
         # Text label below node
         self.text_item = QGraphicsTextItem(label, self)
-        self.text_item.setDefaultTextColor(QColor("#E2E8F0"))
         font = QFont("Helvetica", 8, QFont.Bold)
         self.text_item.setFont(font)
         self.text_item.setPos(-24, 18)
@@ -49,6 +47,17 @@ class GraphNodeItem(QGraphicsEllipseItem):
         self.setToolTip("<br>".join(tip_lines))
 
         self.edges: List["GraphEdgeItem"] = []
+        self.refresh_theme()
+
+    def refresh_theme(self):
+        """Update node border and label color according to active theme."""
+        is_dark = theme_manager.is_dark()
+        if is_dark:
+            self.setPen(QPen(QColor("#0F172A"), 2))
+            self.text_item.setDefaultTextColor(QColor("#E2E8F0"))
+        else:
+            self.setPen(QPen(QColor("#CBD5E1"), 2))
+            self.text_item.setDefaultTextColor(QColor("#0F172A"))
 
     def add_edge(self, edge: "GraphEdgeItem"):
         self.edges.append(edge)
@@ -99,10 +108,20 @@ class ForensicGraphView(QGraphicsView):
         self.setScene(self.scene)
         self.setRenderHint(QPainter.Antialiasing)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
-        self.setStyleSheet(f"background-color: {THEME_COLORS['bg_dark']}; border: none;")
 
         self.node_items: Dict[str, GraphNodeItem] = {}
         self.edge_items: List[GraphEdgeItem] = []
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update canvas background and node item styles for active theme."""
+        bg_col = THEME_COLORS["bg_dark"]
+        self.setStyleSheet(f"background-color: {bg_col}; border: none;")
+        self.scene.setBackgroundBrush(QBrush(QColor(bg_col)))
+        for item in self.node_items.values():
+            item.refresh_theme()
 
     def clear_graph(self):
         self.scene.clear()
@@ -119,34 +138,35 @@ class ForensicGraphView(QGraphicsView):
         nodes = sorted(nx_graph.nodes(), key=lambda n: nx_graph.degree(n), reverse=True)[:max_nodes]
         subgraph = nx_graph.subgraph(nodes)
 
-        # Place nodes radially by layer (IPs top-left, Wallets center, TXs right)
-        count = len(nodes)
-        radius = min(400, max(180, count * 7))
+        # Circular / multi-tier layout calculation
+        node_positions = {}
+        total = len(nodes)
+        radius_step = 60
+        angle_step = (2 * math.pi) / max(1, total)
 
-        for idx, node in enumerate(nodes):
+        for i, node in enumerate(nodes):
+            tier = (i % 4) + 1
+            rad = tier * radius_step + 40
+            theta = i * angle_step * 2.3
+            x = rad * math.cos(theta)
+            y = rad * math.sin(theta)
+            node_positions[node] = (x, y)
+
+        # Create Visual Node Items
+        for node in subgraph.nodes():
             data = subgraph.nodes[node]
-            ntype = data.get("node_type", "Wallet")
-            label = data.get("label", node[:10])
+            ntype = data.get("node_type", "wallet")
+            label = data.get("label", str(node)[:12])
+            pos = node_positions.get(node, (0, 0))
 
-            # Position in visual space
-            angle = (2 * math.pi * idx) / count
-            # Group slightly by type
-            offset_r = radius
-            if ntype == "IP":
-                offset_r *= 1.2
-            elif ntype == "Transaction":
-                offset_r *= 0.8
-
-            x = offset_r * math.cos(angle)
-            y = offset_r * math.sin(angle)
-
-            item = GraphNodeItem(node, ntype, label, data, self)
-            item.setPos(x, y)
+            item = GraphNodeItem(str(node), ntype, label, data, self)
+            item.setPos(pos[0], pos[1])
             self.scene.addItem(item)
-            self.node_items[node] = item
+            self.node_items[str(node)] = item
 
-        # Add Edges
-        for u, v, k, data in subgraph.edges(keys=True, data=True):
+        # Create Visual Edge Items
+        for u, v, data in subgraph.edges(data=True):
+            u, v = str(u), str(v)
             if u in self.node_items and v in self.node_items:
                 etype = data.get("edge_type", "TRANSFER")
                 edge_item = GraphEdgeItem(self.node_items[u], self.node_items[v], etype, data)
@@ -191,22 +211,24 @@ class ForensicGraphView(QGraphicsView):
         for nid, item in self.node_items.items():
             if nid in active_nodes:
                 item.setOpacity(1.0)
-                item.setPen(QPen(QColor("#38BDF8"), 3 if nid == root_node_id else 1.5))
+                item.setPen(QPen(QColor(THEME_COLORS["accent_blue"]), 3 if nid == root_node_id else 1.5))
             else:
                 item.setOpacity(0.18)
 
         for edge in self.edge_items:
             if edge.source.node_id in active_nodes and edge.target.node_id in active_nodes:
                 edge.setOpacity(1.0)
-                edge.setPen(QPen(QColor("#38BDF8"), 2))
+                edge.setPen(QPen(QColor(THEME_COLORS["accent_blue"]), 2))
             else:
                 edge.setOpacity(0.08)
 
     def reset_highlight(self):
         """Reset all nodes and edges to standard visibility."""
+        is_dark = theme_manager.is_dark()
+        pen_color = QColor("#0F172A") if is_dark else QColor("#CBD5E1")
         for item in self.node_items.values():
             item.setOpacity(1.0)
-            item.setPen(QPen(QColor("#0F172A"), 2))
+            item.setPen(QPen(pen_color, 2))
         for edge in self.edge_items:
             edge.setOpacity(1.0)
             edge.setPen(QPen(edge.base_color, 1.5))

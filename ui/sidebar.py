@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QFrame, QVBoxLayout, QPushButton, QLabel, QButtonGroup, QWidget
 )
 from PySide6.QtCore import Qt, Signal
-from app.theme import THEME_COLORS
+from app.theme import THEME_COLORS, theme_manager
 
 
 class Sidebar(QFrame):
@@ -34,27 +34,11 @@ class Sidebar(QFrame):
         layout.setSpacing(6)
 
         # Brand / Title
-        brand_lbl = QLabel("TRACE")
-        brand_lbl.setStyleSheet(f"""
-            font-size: 20px;
-            font-weight: 900;
-            color: {THEME_COLORS['accent_blue']};
-            letter-spacing: 2px;
-            padding-left: 8px;
-        """)
+        self.brand_lbl = QLabel("TRACE")
+        self.sub_brand_lbl = QLabel("SIH26146 • NTRO FORENSICS")
 
-        sub_brand_lbl = QLabel("SIH26146 • NTRO FORENSICS")
-        sub_brand_lbl.setStyleSheet(f"""
-            font-size: 9px;
-            font-weight: 700;
-            color: {THEME_COLORS['text_muted']};
-            letter-spacing: 1px;
-            padding-left: 8px;
-            margin-bottom: 12px;
-        """)
-
-        layout.addWidget(brand_lbl)
-        layout.addWidget(sub_brand_lbl)
+        layout.addWidget(self.brand_lbl)
+        layout.addWidget(self.sub_brand_lbl)
 
         # Nav button group
         self.button_group = QButtonGroup(self)
@@ -76,25 +60,49 @@ class Sidebar(QFrame):
         layout.addStretch()
 
         # Offline Verified Badge at bottom of sidebar
-        offline_box = QFrame()
-        offline_box.setStyleSheet(f"""
-            background-color: rgba(16, 185, 129, 0.1);
+        self.offline_box = QFrame()
+        off_layout = QVBoxLayout(self.offline_box)
+        off_layout.setContentsMargins(6, 6, 6, 6)
+        off_layout.setSpacing(2)
+
+        self.off_title = QLabel("🔒 100% AIR-GAPPED")
+        self.off_desc = QLabel("Outbound network disabled")
+
+        off_layout.addWidget(self.off_title)
+        off_layout.addWidget(self.off_desc)
+        layout.addWidget(self.offline_box)
+
+        self.refresh_theme()
+        theme_manager.theme_changed.connect(lambda _: self.refresh_theme())
+
+    def refresh_theme(self):
+        """Update brand and offline badge styling with active theme colors."""
+        self.brand_lbl.setStyleSheet(f"""
+            font-size: 20px;
+            font-weight: 900;
+            color: {THEME_COLORS['accent_blue']};
+            letter-spacing: 2px;
+            padding-left: 8px;
+        """)
+
+        self.sub_brand_lbl.setStyleSheet(f"""
+            font-size: 9px;
+            font-weight: 700;
+            color: {THEME_COLORS['text_muted']};
+            letter-spacing: 1px;
+            padding-left: 8px;
+            margin-bottom: 12px;
+        """)
+
+        self.offline_box.setStyleSheet(f"""
+            background-color: rgba(16, 185, 129, 0.12);
             border: 1px solid {THEME_COLORS['accent_emerald']};
             border-radius: 6px;
             padding: 8px;
         """)
-        off_layout = QVBoxLayout(offline_box)
-        off_layout.setContentsMargins(6, 6, 6, 6)
-        off_layout.setSpacing(2)
 
-        off_title = QLabel("🔒 100% AIR-GAPPED")
-        off_title.setStyleSheet(f"color: {THEME_COLORS['accent_emerald']}; font-weight: 700; font-size: 11px;")
-        off_desc = QLabel("Outbound network disabled")
-        off_desc.setStyleSheet(f"color: {THEME_COLORS['text_muted']}; font-size: 10px;")
-
-        off_layout.addWidget(off_title)
-        off_layout.addWidget(off_desc)
-        layout.addWidget(offline_box)
+        self.off_title.setStyleSheet(f"color: {THEME_COLORS['accent_emerald']}; font-weight: 700; font-size: 11px;")
+        self.off_desc.setStyleSheet(f"color: {THEME_COLORS['text_muted']}; font-size: 10px;")
 
     def _on_button_clicked(self, page_id: int):
         self.page_changed.emit(page_id)

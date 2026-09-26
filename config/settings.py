@@ -47,6 +47,7 @@ class Settings:
     WINDOW_TITLE: str = "TRACE | SIH26146 Forensic Intelligence Workstation [OFFLINE]"
     DEFAULT_WINDOW_WIDTH: int = 1440
     DEFAULT_WINDOW_HEIGHT: int = 900
+    THEME: str = "dark"
     
     def __post_init__(self):
         self.DATA_DIR = self.BASE_DIR / "data"
