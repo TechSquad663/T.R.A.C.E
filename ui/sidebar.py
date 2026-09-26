@@ -127,3 +127,5 @@ class Sidebar(QFrame):
             if self.button_group.id(btn) == page_id:
                 btn.setChecked(True)
                 break
+        # Emit so the QStackedWidget in main_window actually switches
+        self.page_changed.emit(page_id)
