@@ -12,7 +12,7 @@ from reports.csv_export import export_alerts_to_csv, export_entities_to_csv, exp
 from reports.json_export import export_docket_to_json
 
 
-from ui.components import ForensicComboBox
+from ui.components import ForensicComboBox, SearchableComboBox
 
 
 class ReportsPage(QWidget):
@@ -59,7 +59,7 @@ class ReportsPage(QWidget):
 
         ent_select_box = QHBoxLayout()
         ent_select_box.addWidget(QLabel("Select Target Lead:"))
-        self.entity_combo = ForensicComboBox()
+        self.entity_combo = SearchableComboBox()
         self.entity_combo.setMinimumWidth(320)
         ent_select_box.addWidget(self.entity_combo)
         ent_select_box.addStretch()

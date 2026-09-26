@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
 from core.models import TransactionRecord
 from .transaction_details import TransactionDetailsDialog
-from ui.components import ForensicComboBox
+from ui.components import ForensicComboBox, SearchableComboBox
 
 
 class TransactionPage(QWidget):
@@ -49,7 +49,7 @@ class TransactionPage(QWidget):
         fb_layout.addWidget(self.search_input, 2)
 
         fb_layout.addWidget(QLabel("Country:"))
-        self.country_filter = ForensicComboBox()
+        self.country_filter = SearchableComboBox()
         self.country_filter.addItem("All Jurisdictions")
         self.country_filter.currentTextChanged.connect(self._apply_filters)
         fb_layout.addWidget(self.country_filter, 1)

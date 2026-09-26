@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
 from core.constants import DISCLAIMER_TEXT
-from ui.components import ForensicComboBox
+from ui.components import ForensicComboBox, SearchableComboBox
 
 
 class EvidencePage(QWidget):
@@ -42,7 +42,7 @@ class EvidencePage(QWidget):
         sb_layout.setSpacing(12)
 
         sb_layout.addWidget(QLabel("Select Flagged Entity:"))
-        self.entity_combo = ForensicComboBox()
+        self.entity_combo = SearchableComboBox()
         self.entity_combo.setMinimumWidth(320)
         self.entity_combo.currentIndexChanged.connect(self._on_entity_selected)
         sb_layout.addWidget(self.entity_combo)
