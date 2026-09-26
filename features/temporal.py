@@ -59,10 +59,14 @@ def extract_temporal_features(timestamps_iso: List[str]) -> Dict[str, float]:
     else:
         burst_score = 0.0
 
+    # Rapid hop detection: count of intervals less than 10 minutes (600 seconds)
+    rapid_hop_count = sum(1 for i in intervals if i < 600)
+
     return {
         "tx_velocity_per_hour": round(velocity, 4),
         "burst_score": round(burst_score, 4),
         "avg_interval_seconds": round(avg_interval, 2),
         "std_interval_seconds": round(std_interval, 2),
         "active_span_hours": round(span_hours, 3),
+        "rapid_hop_count": float(rapid_hop_count),
     }

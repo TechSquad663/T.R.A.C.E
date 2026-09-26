@@ -22,12 +22,14 @@ FEATURE_COLUMNS = [
     "unique_counterparties",
     "fan_in_ratio",
     "fan_out_ratio",
+    "peeling_chain_count",
     # Temporal
     "tx_velocity_per_hour",
     "burst_score",
     "avg_interval_seconds",
     "std_interval_seconds",
     "active_span_hours",
+    "rapid_hop_count",
     # Network
     "unique_source_ips",
     "unique_dest_ips",

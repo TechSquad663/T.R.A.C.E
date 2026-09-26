@@ -23,6 +23,11 @@ from scoring.risk_engine import RiskEngine
 from scoring.confidence import ConfidenceCalculator
 from scoring.alert_ranker import AlertRanker
 from evidence.evidence_builder import EvidenceBuilder
+from ingestion.dataset_verification import DatasetVerifier
+from core.database import TRACEDatabase
+from core.audit import AuditLogger
+from graph.embeddings import GraphEmbedder
+from graph.path_analysis import PathAnalyzer
 
 logger = logging.getLogger("TRACE.Pipeline")
 
@@ -40,6 +45,9 @@ class InvestigationPipeline:
         self.model_manager = ModelManager()
         self.risk_engine = RiskEngine()
         self.alert_ranker = AlertRanker()
+        self.db = TRACEDatabase()
+        self.audit = AuditLogger()
+        self.embedder = GraphEmbedder(dimensions=8)
 
         # State storage
         self.raw_records: List[Dict[str, Any]] = []
@@ -91,6 +99,14 @@ class InvestigationPipeline:
         update(1, "Loading dataset from offline source...")
         if isinstance(data_source, (str, Path)):
             p = Path(data_source)
+            
+            # STAGE 1.1: Cryptographic Dataset Verification
+            logger.info(f"Running SHA-256 verification on {p.name}")
+            is_valid, dataset_hash = DatasetVerifier.verify_dataset(p)
+            self.audit.log_action("SYSTEM", "DATASET_VERIFICATION", str(p), {"hash": dataset_hash, "is_valid": is_valid})
+            if not is_valid:
+                logger.warning(f"Dataset {p.name} failed cryptographic hash check! Proceeding with caution.")
+                
             suffix = p.suffix.lower()
             file_size = p.stat().st_size if p.exists() else 0
             if suffix == ".csv":
@@ -137,6 +153,7 @@ class InvestigationPipeline:
                 all_errors.extend(errs)
                 rec = self.normalizer.normalize_record(raw_r, status=status, notes=errs)
                 validated_list.append(rec)
+                self.db.save_quarantined_record(raw_r, errs)
             else:
                 invalid_count += 1
                 all_errors.extend(errs)
@@ -181,6 +198,10 @@ class InvestigationPipeline:
         update(7, "Calculating graph centrality, PageRank, and topological metrics...")
         extractor = GraphFeatureExtractor(self.graph)
         self.graph_metrics = extractor.compute_all_metrics()
+        
+        # STAGE 7.5: Node2Vec Embeddings
+        update(7, "Generating spectral graph embeddings (Node2Vec approximation)...")
+        embeddings = self.embedder.fit_transform(self.graph)
 
         # STAGE 8: Feature Pipeline Engineering
         update(8, "Synthesizing multi-modal behavioral, temporal, network, and graph features...")
@@ -189,6 +210,17 @@ class InvestigationPipeline:
             records=self.records,
             graph_metrics=self.graph_metrics,
         )
+        
+        # Append embeddings to features_df
+        emb_cols = [f"emb_{i}" for i in range(self.embedder.dimensions)]
+        for col in emb_cols:
+            self.features_df[col] = 0.0
+            
+        for ent_id, entity in self.entities.items():
+            node_key = f"WAL_{entity.addresses[0][:14]}" if entity.addresses else f"ENT_{ent_id}"
+            if node_key in embeddings:
+                for i in range(self.embedder.dimensions):
+                    self.features_df.at[ent_id, f"emb_{i}"] = embeddings[node_key][i]
 
         # STAGE 9: Model Training / Inference (XGBoost, Isolation Forest, DBSCAN)
         update(9, "Executing supervised behavioral classifier (XGBoost)...")
@@ -220,6 +252,20 @@ class InvestigationPipeline:
 
         # STAGE 11: Behavioral Clustering
         update(11, "Clustering behavioral cohorts with DBSCAN...")
+
+        # STAGE 11.5: Seed-Wallet Propagation
+        update(11, "Propagating taint from known malicious seeds...")
+        seed_nodes = []
+        if self.ground_truth:
+            for eid, data in self.ground_truth.items():
+                if data.get("is_suspicious") == 1:
+                    entity = self.entities.get(eid)
+                    if entity:
+                        node_key = f"WAL_{entity.addresses[0][:14]}" if entity.addresses else f"ENT_{eid}"
+                        seed_nodes.append(node_key)
+        
+        path_analyzer = PathAnalyzer(self.graph)
+        taint_scores = path_analyzer.propagate_seed_taint(seed_nodes)
 
         # STAGE 12: SHAP & Tree Explainability
         update(12, "Generating SHAP feature attributions and evidentiary narratives...")
@@ -309,6 +355,12 @@ class InvestigationPipeline:
                 "supervised": sup_eval,
                 "unsupervised": ano_eval,
             }
+
+        # Save to SQLite Database
+        logger.info("Persisting investigation results to SQLite database...")
+        self.db.save_entities(list(self.entities.values()))
+        self.db.save_alerts(self.alerts)
+        self.audit.log_action("SYSTEM", "PIPELINE_COMPLETE", "GLOBAL", {"alerts_generated": len(self.alerts)})
 
         return {
             "status": "COMPLETED",

@@ -79,3 +79,39 @@ class PathAnalyzer:
             chain.append(step)
 
         return chain
+
+    def propagate_seed_taint(self, seed_nodes: List[str], alpha: float = 0.85) -> Dict[str, float]:
+        """
+        Calculates taint propagation from known malicious seed wallets/nodes 
+        using Personalized PageRank.
+        
+        Returns a dictionary mapping node_id to taint score (0.0 to 1.0).
+        """
+        valid_seeds = [s for s in seed_nodes if self.graph.has_node(s)]
+        if not valid_seeds:
+            logger.warning("No valid seed nodes found in graph for taint propagation.")
+            return {node: 0.0 for node in self.graph.nodes()}
+            
+        personalization = {node: 0.0 for node in self.graph.nodes()}
+        for seed in valid_seeds:
+            personalization[seed] = 1.0 / len(valid_seeds)
+            
+        try:
+            logger.info(f"Running seed-wallet propagation from {len(valid_seeds)} seeds...")
+            taint_scores = nx.pagerank(
+                self.graph, 
+                alpha=alpha, 
+                personalization=personalization,
+                weight='weight'
+            )
+            
+            # Normalize scores to 0-1 range based on max taint (which should be at the seeds)
+            max_score = max(taint_scores.values()) if taint_scores else 1.0
+            if max_score > 0:
+                taint_scores = {k: v / max_score for k, v in taint_scores.items()}
+                
+            return taint_scores
+        except Exception as e:
+            logger.error(f"Taint propagation failed: {e}")
+            return {node: 0.0 for node in self.graph.nodes()}
+

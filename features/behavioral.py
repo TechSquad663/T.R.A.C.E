@@ -30,18 +30,37 @@ def extract_wallet_behavioral_features(
 
     tot_in = 0.0
     tot_out = 0.0
+    peeling_chain_count = 0
 
     for r in entity_records:
         # Check inputs
+        has_entity_input = False
         for idx, in_addr in enumerate(r.input_addresses):
             amt = r.input_amounts[idx] if idx < len(r.input_amounts) else 0.0
             if in_addr in addr_set:
+                has_entity_input = True
                 tot_out += amt
                 out_transfers += 1
                 amounts.append(amt)
                 for out_addr in r.output_addresses:
                     if out_addr not in addr_set:
                         counterparties.add(out_addr)
+
+        # Peeling chain detection heuristic
+        # Condition: Entity spends input, has exactly 2 outputs, one small payment outside, one large change inside.
+        if has_entity_input and len(r.output_addresses) == 2:
+            out_0_in_entity = r.output_addresses[0] in addr_set
+            out_1_in_entity = r.output_addresses[1] in addr_set
+            
+            # Exactly one output goes back to entity (change), one goes outside (payment)
+            if out_0_in_entity != out_1_in_entity:
+                amt_0 = r.output_amounts[0] if len(r.output_amounts) > 0 else 0
+                amt_1 = r.output_amounts[1] if len(r.output_amounts) > 1 else 0
+                
+                if out_0_in_entity and amt_0 > amt_1 * 5:  # Change is significantly larger than payment
+                    peeling_chain_count += 1
+                elif out_1_in_entity and amt_1 > amt_0 * 5:
+                    peeling_chain_count += 1
 
         # Check outputs
         for idx, out_addr in enumerate(r.output_addresses):
@@ -78,4 +97,5 @@ def extract_wallet_behavioral_features(
         "unique_counterparties": float(len(counterparties)),
         "fan_in_ratio": round(fan_in_ratio, 4),
         "fan_out_ratio": round(fan_out_ratio, 4),
+        "peeling_chain_count": float(peeling_chain_count),
     }
