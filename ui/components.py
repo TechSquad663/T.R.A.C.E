@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget,
     QComboBox, QListView, QLineEdit, QListWidget, QListWidgetItem,
-    QApplication, QSizePolicy
+    QApplication, QSizePolicy, QTableWidget, QAbstractButton, QHeaderView
 )
-from PySide6.QtCore import Qt, QPoint, QSize, Signal
-from PySide6.QtGui import QKeyEvent
-from app.theme import THEME_COLORS, theme_manager
+from PySide6.QtCore import Qt, QPoint, QSize, Signal, QObject, QEvent
+from PySide6.QtGui import QKeyEvent, QPainter, QColor, QFont
+from app.theme import THEME_COLORS, theme_manager, CHEVRON_DOWN_DARK, CHEVRON_DOWN_LIGHT
 
 
 class ForensicComboBox(QComboBox):
@@ -302,6 +302,7 @@ class SearchableComboBox(QComboBox):
         text = THEME_COLORS["text_primary"]
         text_sec = THEME_COLORS["text_secondary"]
         accent = THEME_COLORS["accent_blue"]
+        chevron = CHEVRON_DOWN_DARK if theme_manager.is_dark() else CHEVRON_DOWN_LIGHT
         self.setStyleSheet(f"""
             QComboBox {{
                 background-color: {bg};
@@ -318,14 +319,12 @@ class SearchableComboBox(QComboBox):
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
                 width: 24px;
-                border-left: none;
+                border: none;
             }}
             QComboBox::down-arrow {{
-                width: 0;
-                height: 0;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 5px solid {text_sec};
+                image: url({chevron});
+                width: 12px;
+                height: 12px;
             }}
         """)
 
@@ -373,9 +372,9 @@ class KPICard(QFrame):
                 border-color: {THEME_COLORS['border_light']};
             }}
         """)
-        self.title_lbl.setStyleSheet(f"color: {THEME_COLORS['text_muted']}; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;")
-        self.val_lbl.setStyleSheet(f"color: {THEME_COLORS['text_primary']}; font-size: 22px; font-weight: 700;")
-        self.sub_lbl.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+        self.title_lbl.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_muted']}; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;")
+        self.val_lbl.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_primary']}; font-size: 22px; font-weight: 700;")
+        self.sub_lbl.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
 
     def set_value(self, val: str, subtext: str = ""):
         self.val_lbl.setText(val)
@@ -492,3 +491,67 @@ class EmptyStateWidget(QFrame):
             }}
             QPushButton:hover {{ background-color: {THEME_COLORS['bg_card_alt']}; border-color: {THEME_COLORS['accent_blue']}; }}
         """)
+
+
+class TableCornerLabelFilter(QObject):
+    """Draws 'Sr No' or custom text cleanly in the top-left table corner header."""
+
+    def __init__(self, text: str = "Sr No", parent=None):
+        super().__init__(parent)
+        self.text = text
+        self._in_paint = False
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Paint and not self._in_paint:
+            self._in_paint = True
+            try:
+                obj.removeEventFilter(self)
+                QApplication.sendEvent(obj, event)
+                obj.installEventFilter(self)
+
+                painter = QPainter(obj)
+                if painter.isActive():
+                    color = QColor(THEME_COLORS.get("text_secondary", "#94A3B8"))
+                    painter.setPen(color)
+                    font = QFont("Segoe UI", 8)
+                    font.setBold(True)
+                    painter.setFont(font)
+                    painter.drawText(obj.rect(), Qt.AlignCenter, self.text)
+                    painter.end()
+            except Exception:
+                pass
+            finally:
+                self._in_paint = False
+            return True
+        return super().eventFilter(obj, event)
+
+
+def setup_table_headers(table: QTableWidget, corner_text: str = "Sr No"):
+    """
+    Configures a QTableWidget's headers:
+    1. Sets comfortable section height and width for row numbering.
+    2. Draws 'Sr No' in the top-left corner button cell.
+    """
+    v_header = table.verticalHeader()
+    if v_header:
+        v_header.setDefaultSectionSize(28)
+        v_header.setMinimumSectionSize(24)
+        v_header.setMinimumWidth(52)
+    btn = table.findChild(QAbstractButton)
+    if btn:
+        flt = TableCornerLabelFilter(corner_text, btn)
+        btn.installEventFilter(flt)
+
+
+class ForensicTableWidget(QTableWidget):
+    """QTableWidget with pre-configured 'Sr No' corner header and themed styling."""
+
+    def __init__(self, rows=0, cols=0, parent=None, corner_text: str = "Sr No"):
+        super().__init__(rows, cols, parent)
+        self.corner_text = corner_text
+        setup_table_headers(self, corner_text)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        setup_table_headers(self, self.corner_text)
+

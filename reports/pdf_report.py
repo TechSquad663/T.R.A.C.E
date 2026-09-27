@@ -98,7 +98,7 @@ class ForensicPDFReportGenerator:
         # Header Title
         elements.append(Paragraph("TRACE INVESTIGATIVE LEAD REPORT", self.title_style))
         elements.append(Paragraph(
-            f"National Technical Research Organisation (NTRO) • Blockchain Forensics Workstation • Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
+            f"National Technical Research Organisation (NTRO) • Developed by Team TechSquad • Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
             self.sub_title_style,
         ))
         elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#CBD5E1"), spaceAfter=10))

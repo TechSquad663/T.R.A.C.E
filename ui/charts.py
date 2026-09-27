@@ -42,9 +42,9 @@ class ForensicCard(QFrame):
                 border-radius: 8px;
             }}
         """)
-        self.lbl_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
+        self.lbl_title.setStyleSheet(f"background: transparent; font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
         if self.lbl_sub:
-            self.lbl_sub.setStyleSheet(f"font-size: 10px; color: {THEME_COLORS['text_secondary']};")
+            self.lbl_sub.setStyleSheet(f"background: transparent; font-size: 10px; color: {THEME_COLORS['text_secondary']};")
 
 
 class DonutChartWidget(QWidget):
@@ -75,12 +75,12 @@ class DonutChartWidget(QWidget):
             painter.drawText(self.rect(), Qt.AlignCenter, "No distribution data available")
             return
 
-        # Allocate left 45% for donut, right 55% for legend
-        donut_size = min(w * 0.42, h - 20)
+        # Allocate left portion for donut, right portion for legend
+        donut_size = min(int(w * 0.36), h - 22)
         center_x = 10 + donut_size / 2
         center_y = h / 2
         radius = donut_size / 2
-        inner_radius = radius * 0.62
+        inner_radius = radius * 0.60
 
         donut_rect = QRectF(center_x - radius, center_y - radius, radius * 2, radius * 2)
 
@@ -107,33 +107,41 @@ class DonutChartWidget(QWidget):
         painter.drawText(hole_rect, Qt.AlignCenter, str(int(total)))
 
         # Legend on the right
-        legend_x = center_x + radius + 14
-        avail_legend_w = max(60, w - legend_x - 10)
-        legend_y = max(10, int((h - (len(self.slices) * 22)) / 2))
+        legend_x = center_x + radius + 12
+        legend_y = max(8, int((h - (len(self.slices) * 22)) / 2))
         font_leg = QFont("Segoe UI", 9)
         painter.setFont(font_leg)
         fm = painter.fontMetrics()
 
-        val_w = 46
-        lbl_w = max(35, avail_legend_w - val_w - 18)
+        # Compute dynamic value width so value column aligns neatly at the right edge
+        val_strs = [f"{int(v)} ({((v / total * 100.0) if total > 0 else 0.0):.0f}%)" for _, v, _ in self.slices]
+        max_val_w = max((fm.horizontalAdvance(vs) for vs in val_strs), default=40) + 4
+        margin_right = 8
+        val_x = w - margin_right - max_val_w
 
-        for label, val, color_hex in self.slices:
-            pct = (val / total * 100.0) if total > 0 else 0.0
+        label_x = legend_x + 14
+        lbl_avail_w = max(35, val_x - label_x - 4)
+
+        for i, (label, val, color_hex) in enumerate(self.slices):
+            val_str = val_strs[i]
+
             # Color swatch
             painter.setBrush(QBrush(QColor(color_hex)))
             painter.setPen(Qt.NoPen)
             painter.drawRoundedRect(QRectF(legend_x, legend_y + 4, 9, 9), 2, 2)
 
-            # Elided Label
-            label_rect = QRectF(legend_x + 14, legend_y, lbl_w, 18)
-            elided_lbl = fm.elidedText(label, Qt.ElideRight, int(lbl_w))
+            # Label (without elision if it fits within available space)
+            label_rect = QRectF(label_x, legend_y, lbl_avail_w, 18)
+            if fm.horizontalAdvance(label) <= lbl_avail_w:
+                display_lbl = label
+            else:
+                display_lbl = fm.elidedText(label, Qt.ElideRight, int(lbl_avail_w))
             painter.setPen(QColor(THEME_COLORS["text_secondary"]))
-            painter.drawText(label_rect, Qt.AlignLeft | Qt.AlignVCenter, elided_lbl)
+            painter.drawText(label_rect, Qt.AlignLeft | Qt.AlignVCenter, display_lbl)
 
-            # Value string
-            val_rect = QRectF(legend_x + 14 + lbl_w + 2, legend_y, val_w, 18)
+            # Value string right-aligned
+            val_rect = QRectF(val_x, legend_y, max_val_w, 18)
             painter.setPen(QColor(THEME_COLORS["text_primary"]))
-            val_str = f"{int(val)} ({pct:.0f}%)"
             painter.drawText(val_rect, Qt.AlignRight | Qt.AlignVCenter, val_str)
 
             legend_y += 22
@@ -283,35 +291,46 @@ class HorizontalBarChartWidget(QWidget):
 
         bar_height = 14
         row_spacing = 26
-        left_label_w = min(115, max(75, int(w * 0.30)))
-        right_val_w = 40
-        available_bar_w = max(20, w - left_label_w - right_val_w - 20)
-
         y = 10
         painter.setFont(QFont("Segoe UI", 9))
         fm = painter.fontMetrics()
 
+        # Dynamically measure label requirements up to 48% of card width
+        max_label_needed = max((fm.horizontalAdvance(item[0]) for item in self.items), default=60) + 12
+        left_label_w = max(60, min(int(w * 0.48), max_label_needed))
+
+        # Dynamically measure right value text width
+        right_val_w = max(26, max((fm.horizontalAdvance(str(int(item[1]))) for item in self.items), default=20) + 8)
+
+        # Available space for horizontal bar
+        available_bar_w = max(25, w - left_label_w - right_val_w - 16)
+        bar_x = left_label_w
+
         for label, val, color_hex in self.items:
-            # Draw label with elision protection
+            # Draw label without elision whenever it fits
+            lbl_avail = left_label_w - 8
+            if fm.horizontalAdvance(label) <= lbl_avail:
+                display_label = label
+            else:
+                display_label = fm.elidedText(label, Qt.ElideRight, int(lbl_avail))
             painter.setPen(QColor(THEME_COLORS["text_secondary"]))
-            elided_label = fm.elidedText(label, Qt.ElideRight, int(left_label_w - 10))
-            painter.drawText(QRectF(8, y, left_label_w - 10, bar_height + 4), Qt.AlignLeft | Qt.AlignVCenter, elided_label)
+            painter.drawText(QRectF(6, y, lbl_avail, bar_height + 4), Qt.AlignLeft | Qt.AlignVCenter, display_label)
 
             # Draw bar background track
-            track_rect = QRectF(left_label_w, y + 2, available_bar_w, bar_height)
+            track_rect = QRectF(bar_x, y + 2, available_bar_w, bar_height)
             painter.setBrush(QBrush(QColor(THEME_COLORS["border"])))
             painter.setPen(Qt.NoPen)
             painter.drawRoundedRect(track_rect, 4, 4)
 
             # Draw filled portion
             fill_w = max(4.0, (val / max_val) * available_bar_w)
-            fill_rect = QRectF(left_label_w, y + 2, fill_w, bar_height)
+            fill_rect = QRectF(bar_x, y + 2, fill_w, bar_height)
             painter.setBrush(QBrush(QColor(color_hex)))
             painter.drawRoundedRect(fill_rect, 4, 4)
 
             # Draw count value
             painter.setPen(QColor(THEME_COLORS["text_primary"]))
-            painter.drawText(QRectF(left_label_w + available_bar_w + 8, y, right_val_w, bar_height + 4), Qt.AlignLeft | Qt.AlignVCenter, str(int(val)))
+            painter.drawText(QRectF(bar_x + available_bar_w + 6, y, right_val_w, bar_height + 4), Qt.AlignLeft | Qt.AlignVCenter, str(int(val)))
 
             y += row_spacing
             if y + row_spacing > h:

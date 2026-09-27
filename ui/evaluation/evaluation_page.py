@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
-from ui.components import KPICard
+from ui.components import KPICard, setup_table_headers
 
 
 class EvaluationPage(QWidget):
@@ -62,6 +62,7 @@ class EvaluationPage(QWidget):
         layout.addWidget(self.tbl_lbl)
 
         self.comp_table = QTableWidget(3, 6)
+        setup_table_headers(self.comp_table, corner_text="#")
         self.comp_table.setHorizontalHeaderLabels([
             "Architecture / Engine", "Precision", "Recall", "F1-Score", "ROC-AUC", "Operational Role"
         ])

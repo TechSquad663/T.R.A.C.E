@@ -44,7 +44,7 @@ class Settings:
     CIO_CONFIDENCE_BASE: float = 0.75
     
     # UI Constants
-    WINDOW_TITLE: str = "TRACE | SIH26146 Forensic Intelligence Workstation [OFFLINE]"
+    WINDOW_TITLE: str = "TRACE by Team TechSquad | SIH26146 Forensic Intelligence Workstation [OFFLINE]"
     DEFAULT_WINDOW_WIDTH: int = 1440
     DEFAULT_WINDOW_HEIGHT: int = 900
     THEME: str = "dark"

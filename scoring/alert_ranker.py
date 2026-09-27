@@ -40,11 +40,38 @@ class AlertRanker:
 
             evidence = combined_evidences.get(ent_id, {})
 
-            # Primary pattern description
+            # Concise, professional forensic pattern classification
             pattern_str = "Standard Activity"
+            m_p = risk_eval.get("model_probability", entity.model_probability)
+            a_s = risk_eval.get("anomaly_score", entity.anomaly_score)
+            g_s = risk_eval.get("graph_signal", 0.0)
+            n_s = risk_eval.get("network_signal", 0.0)
+            graph_ev = evidence.get("graph_evidence", {})
+            fan_in = graph_ev.get("fan_in_ratio", 0.0)
+            fan_out = graph_ev.get("fan_out_ratio", 0.0)
+
+            if fan_in >= 0.70:
+                pattern_str = "Fan-In Consolidation"
+            elif fan_out >= 0.70:
+                pattern_str = "Fan-Out Dispersion"
+            elif len(entity.ips) >= 3:
+                pattern_str = "Multi-IP Association"
+            elif m_p >= 0.70:
+                pattern_str = "High-Risk Classifier"
+            elif a_s >= 0.75:
+                pattern_str = "Statistical Anomaly"
+            elif g_s >= 0.60:
+                pattern_str = "Topological Hub"
+            elif n_s >= 0.50:
+                pattern_str = "Cross-Border Relay"
+            elif risk_score >= 65.0:
+                pattern_str = "Elevated Risk Flow"
+            elif risk_score >= 45.0:
+                pattern_str = "Moderate Activity"
+            else:
+                pattern_str = "Routine Transfer"
+
             reasons = risk_eval.get("reasons", ["Routine transaction volume"])
-            if reasons:
-                pattern_str = reasons[0]
 
             alert_id = f"ALT_{ent_id[:12]}"
             alert = Alert(

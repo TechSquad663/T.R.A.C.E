@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
-    QPushButton, QComboBox, QFrame, QScrollArea, QWidget
+    QPushButton, QComboBox, QFrame, QScrollArea, QWidget, QMessageBox
 )
 from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
@@ -19,6 +19,7 @@ class CaseDetailsDialog(QDialog):
     def __init__(self, case: InvestigationCase, parent=None):
         super().__init__(parent)
         self.case = case
+        self.case_deleted = False
         self.setWindowTitle(f"Case File — {case.case_id}: {case.title}")
         self.resize(720, 560)
         self.setMinimumSize(580, 420)
@@ -89,6 +90,25 @@ class CaseDetailsDialog(QDialog):
 
         # Buttons
         btn_box = QHBoxLayout()
+
+        btn_delete = QPushButton("🗑️ Delete Case")
+        btn_delete.setCursor(Qt.PointingHandCursor)
+        btn_delete.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                border: 1px solid {THEME_COLORS['accent_red']};
+                color: {THEME_COLORS['accent_red']};
+                padding: 6px 14px;
+                border-radius: 4px;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{
+                background-color: {THEME_COLORS['accent_red']};
+                color: #FFFFFF;
+            }}
+        """)
+        btn_delete.clicked.connect(self._delete_case)
+        btn_box.addWidget(btn_delete)
         btn_box.addStretch()
 
         btn_cancel = QPushButton("Cancel")
@@ -135,3 +155,15 @@ class CaseDetailsDialog(QDialog):
         self.case.analyst_notes = self.notes_edit.toPlainText()
         self.case.updated_at = datetime.now(timezone.utc).isoformat()
         self.accept()
+
+    def _delete_case(self):
+        reply = QMessageBox.question(
+            self,
+            "Confirm Case Deletion",
+            f"Are you sure you want to permanently delete case {self.case.case_id}?\n\nThis will remove the case docket and all associated analyst notes from the database.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.case_deleted = True
+            self.accept()

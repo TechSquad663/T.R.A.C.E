@@ -29,7 +29,7 @@ class GraphNodeItem(QGraphicsEllipseItem):
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges, True)
 
-        color_hex = NODE_COLORS.get(node_type, "#94A3B8")
+        color_hex = NODE_COLORS.get(node_type, NODE_COLORS.get(str(node_type).capitalize(), NODE_COLORS.get(str(node_type).upper(), "#94A3B8")))
         self.base_color = QColor(color_hex)
         self.setBrush(QBrush(self.base_color))
 
@@ -234,10 +234,16 @@ class ForensicGraphView(QGraphicsView):
 
     def fit_to_view(self):
         """Fit entire graph bounding rect within current viewport."""
-        rect = self.scene.itemsBoundingRect().adjusted(-40, -40, 40, 40)
-        if not rect.isEmpty():
-            self.setSceneRect(rect)
+        rect = self.scene.itemsBoundingRect().adjusted(-60, -60, 60, 60)
+        if rect.isEmpty():
+            return
+        self.setSceneRect(rect)
+        if self.viewport().width() > 50 and self.viewport().height() > 50:
+            self.resetTransform()
             self.fitInView(rect, Qt.KeepAspectRatio)
+        else:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(100, self.fit_to_view)
 
     def highlight_taint(self, taint_scores: Dict[str, float]):
         """Visually color and highlight nodes based on seed propagation taint scores."""

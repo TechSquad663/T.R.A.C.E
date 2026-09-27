@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt, Signal
 from app.theme import THEME_COLORS, theme_manager
 from core.models import Alert
 from .alert_details import AlertDetailsDialog
-from ui.components import ForensicComboBox
+from ui.components import ForensicComboBox, setup_table_headers
 
 
 class AlertsPage(QWidget):
@@ -65,6 +65,7 @@ class AlertsPage(QWidget):
 
         # Alerts Table
         self.alerts_table = QTableWidget(0, 8)
+        setup_table_headers(self.alerts_table)
         self.alerts_table.setHorizontalHeaderLabels([
             "Priority", "Entity ID", "Risk Score", "Confidence", "Anomaly Score", "Model Prob", "Primary Pattern", "Timestamp"
         ])
@@ -95,9 +96,19 @@ class AlertsPage(QWidget):
 
     def refresh_theme(self):
         """Update element styling according to active theme."""
-        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        self.filter_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 6px 12px;")
+        self.title.setStyleSheet(f"background: transparent; font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"background: transparent; font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.filter_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {THEME_COLORS['bg_card']};
+                border: 1px solid {THEME_COLORS['border']};
+                border-radius: 6px;
+                padding: 6px 12px;
+            }}
+            QLabel {{
+                background: transparent;
+            }}
+        """)
 
     def update_data(self, pipeline):
         if not pipeline:
@@ -121,7 +132,10 @@ class AlertsPage(QWidget):
             self.alerts_table.setItem(i, 3, QTableWidgetItem(f"{int(a.confidence * 100)}% ({a.evidence_strength.value})"))
             self.alerts_table.setItem(i, 4, QTableWidgetItem(f"{a.model_evidence.get('anomaly_score', 0.0):.2f}"))
             self.alerts_table.setItem(i, 5, QTableWidgetItem(f"{a.model_evidence.get('model_probability', 0.0):.2f}"))
-            self.alerts_table.setItem(i, 6, QTableWidgetItem(a.pattern))
+            pat_item = QTableWidgetItem(a.pattern)
+            if a.reasons:
+                pat_item.setToolTip("Forensic Rationale:\n• " + "\n• ".join(a.reasons))
+            self.alerts_table.setItem(i, 6, pat_item)
             self.alerts_table.setItem(i, 7, QTableWidgetItem(a.timestamp[:19] if a.timestamp else "N/A"))
 
     def _apply_filters(self):

@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import logging
-from core.models import TransactionRecord, Entity, Alert
+from core.models import TransactionRecord, Entity, Alert, InvestigationCase
+from core.enums import PriorityLevel, InvestigationStatus
 
 logger = logging.getLogger("TRACE.Database")
 
@@ -62,6 +63,22 @@ class TRACEDatabase:
                     raw_data_json TEXT,
                     errors_json TEXT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+
+            # Investigation Cases table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS cases (
+                    case_id TEXT PRIMARY KEY,
+                    title TEXT,
+                    subject_entity_id TEXT,
+                    priority TEXT,
+                    status TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    analyst_notes TEXT,
+                    attached_txids_json TEXT,
+                    attached_alerts_json TEXT
                 )
             ''')
             
@@ -131,4 +148,68 @@ class TRACEDatabase:
                 (alert_id, entity_id, entity_type, risk_score, confidence, priority, timestamp, pattern, reasons_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', records)
+            conn.commit()
+
+    def save_case(self, case: InvestigationCase):
+        """Save or update an individual investigation case docket."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO cases
+                (case_id, title, subject_entity_id, priority, status, created_at, updated_at, analyst_notes, attached_txids_json, attached_alerts_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                case.case_id,
+                case.title,
+                case.subject_entity_id,
+                case.priority.value if hasattr(case.priority, 'value') else str(case.priority),
+                case.status.value if hasattr(case.status, 'value') else str(case.status),
+                case.created_at,
+                case.updated_at,
+                case.analyst_notes,
+                json.dumps(case.attached_txids),
+                json.dumps(case.attached_alerts)
+            ))
+            conn.commit()
+
+    def save_cases(self, cases: List[InvestigationCase]):
+        """Bulk save investigation cases."""
+        for c in cases:
+            self.save_case(c)
+
+    def load_cases(self) -> List[InvestigationCase]:
+        """Load all saved investigation cases ordered by last update."""
+        cases: List[InvestigationCase] = []
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT case_id, title, subject_entity_id, priority, status, created_at, updated_at, analyst_notes, attached_txids_json, attached_alerts_json
+                FROM cases
+                ORDER BY updated_at DESC
+            ''')
+            rows = cursor.fetchall()
+            for r in rows:
+                try:
+                    c = InvestigationCase(
+                        case_id=r[0],
+                        title=r[1],
+                        subject_entity_id=r[2],
+                        priority=PriorityLevel(r[3]),
+                        status=InvestigationStatus(r[4]),
+                        created_at=r[5],
+                        updated_at=r[6],
+                        analyst_notes=r[7] or "",
+                        attached_txids=json.loads(r[8]) if r[8] else [],
+                        attached_alerts=json.loads(r[9]) if r[9] else []
+                    )
+                    cases.append(c)
+                except Exception as err:
+                    logger.warning(f"Error deserializing case {r[0]}: {err}")
+        return cases
+
+    def delete_case(self, case_id: str):
+        """Remove a case docket from storage."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM cases WHERE case_id = ?', (case_id,))
             conn.commit()

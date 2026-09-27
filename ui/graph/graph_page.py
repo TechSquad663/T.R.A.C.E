@@ -152,7 +152,8 @@ class GraphPage(QWidget):
         if w > 400:
             drawer_w = min(350, int(w * 0.30))
             self.splitter.setSizes([w - drawer_w, drawer_w])
-        self.graph_canvas.fit_to_view()
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(60, self.graph_canvas.fit_to_view)
 
     def refresh_theme(self):
         """Update element styling according to active theme."""

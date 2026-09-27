@@ -1,5 +1,9 @@
-"""Dark cybersecurity workstation and Light analyst themes with Qt Stylesheets (QSS) for TRACE."""
+from pathlib import Path
 from PySide6.QtCore import QObject, Signal
+
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+CHEVRON_DOWN_DARK = (ASSETS_DIR / "chevron_down_dark.png").as_posix()
+CHEVRON_DOWN_LIGHT = (ASSETS_DIR / "chevron_down_light.png").as_posix()
 
 DARK_THEME_COLORS = {
     "bg_dark": "#0B0F19",       # Deep Obsidian
@@ -71,6 +75,7 @@ def get_stylesheet(theme_name: str = "dark") -> str:
     tab_unselected_bg = "#080C14" if is_dark else "#F1F5F9"
     progress_bg = "#1E293B" if is_dark else "#E2E8F0"
     tooltip_bg = "#1E293B" if is_dark else "#FFFFFF"
+    chevron_path = CHEVRON_DOWN_DARK if is_dark else CHEVRON_DOWN_LIGHT
 
     return f"""
 QMainWindow {{
@@ -87,12 +92,26 @@ QWidget {{
     selection-color: #FFFFFF;
 }}
 
+QLabel {{
+    background-color: transparent;
+    color: {c['text_primary']};
+}}
+
+QCheckBox, QRadioButton {{
+    background-color: transparent;
+    color: {c['text_primary']};
+}}
+
 /* Sidebar Styling */
 QFrame#SidebarFrame {{
     background-color: {sidebar_bg};
     border-right: 1px solid {c['border']};
     min-width: 230px;
     max-width: 230px;
+}}
+
+QFrame#SidebarFrame QLabel {{
+    background-color: transparent;
 }}
 
 QPushButton.nav-btn {{
@@ -131,6 +150,10 @@ QFrame#HeaderFrame {{
     padding: 0px 16px;
 }}
 
+QFrame#HeaderFrame QLabel {{
+    background-color: transparent;
+}}
+
 QStatusBar {{
     background-color: {status_bg};
     border-top: 1px solid {c['border']};
@@ -138,12 +161,20 @@ QStatusBar {{
     font-size: 11px;
 }}
 
+QStatusBar QLabel {{
+    background-color: transparent;
+}}
+
 /* Forensic Cards & Frames */
-QFrame.kpi-card, QFrame.evidence-card, QFrame.forensic-card, QFrame.card {{
+QFrame.kpi-card, QFrame.evidence-card, QFrame.forensic-card, QFrame.card, QFrame#KPICard, ForensicCard {{
     background-color: {c['bg_card']};
     border: 1px solid {c['border']};
     border-radius: 8px;
     padding: 14px;
+}}
+
+QFrame.kpi-card QLabel, QFrame.evidence-card QLabel, QFrame.forensic-card QLabel, QFrame.card QLabel, QFrame#KPICard QLabel, ForensicCard QLabel {{
+    background-color: transparent;
 }}
 
 QFrame.kpi-card:hover, QFrame.evidence-card:hover, QFrame.forensic-card:hover, QFrame.card:hover {{
@@ -245,15 +276,40 @@ QTableWidget {{
     color: {c['text_primary']};
 }}
 
+QTableCornerButton::section {{
+    background-color: {table_header_bg};
+    border: none;
+    border-bottom: 1px solid {c['border']};
+    border-right: 1px solid {c['border']};
+}}
+
+QHeaderView {{
+    background-color: {table_header_bg};
+    border: none;
+}}
+
 QHeaderView::section {{
     background-color: {table_header_bg};
     color: {c['text_secondary']};
     padding: 8px;
     border: none;
     border-bottom: 1px solid {c['border']};
+    border-right: 1px solid {c['border']};
     font-weight: 600;
     font-size: 11px;
     text-transform: uppercase;
+}}
+
+QHeaderView::section:vertical {{
+    background-color: {table_header_bg};
+    color: {c['text_muted']};
+    padding: 4px 6px;
+    border: none;
+    border-bottom: 1px solid {c['border']};
+    border-right: 1px solid {c['border']};
+    font-weight: 600;
+    font-size: 11px;
+    text-align: center;
 }}
 
 QTableWidget::item {{
@@ -305,15 +361,13 @@ QComboBox::drop-down {{
     subcontrol-origin: padding;
     subcontrol-position: top right;
     width: 24px;
-    border-left: none;
+    border: none;
 }}
 
 QComboBox::down-arrow {{
-    width: 0;
-    height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 5px solid {c['text_secondary']};
+    image: url({chevron_path});
+    width: 12px;
+    height: 12px;
 }}
 
 QComboBox QAbstractItemView, QComboBox QListView {{

@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
 from core.models import Entity
 from ui.entities.entity_details import EntityDetailsDialog
-from ui.components import ForensicComboBox
+from ui.components import ForensicComboBox, setup_table_headers
 
 
 class AnomalyPage(QWidget):
@@ -78,6 +78,7 @@ class AnomalyPage(QWidget):
 
         # Anomalies Table
         self.anomaly_table = QTableWidget(0, 8)
+        setup_table_headers(self.anomaly_table)
         self.anomaly_table.setHorizontalHeaderLabels([
             "Entity ID", "Anomaly Score", "Primary Archetype", "Fan-In / Fan-Out", "Relay IPs", "Countries", "Velocity", "Risk Score"
         ])
@@ -108,9 +109,19 @@ class AnomalyPage(QWidget):
 
     def refresh_theme(self):
         """Update element styling according to active theme."""
-        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        self.filter_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 6px 12px;")
+        self.title.setStyleSheet(f"background: transparent; font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"background: transparent; font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.filter_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {THEME_COLORS['bg_card']};
+                border: 1px solid {THEME_COLORS['border']};
+                border-radius: 6px;
+                padding: 6px 12px;
+            }}
+            QLabel {{
+                background: transparent;
+            }}
+        """)
 
     def update_data(self, pipeline):
         if not pipeline:

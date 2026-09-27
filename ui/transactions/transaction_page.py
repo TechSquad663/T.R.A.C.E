@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
 from core.models import TransactionRecord
 from .transaction_details import TransactionDetailsDialog
-from ui.components import ForensicComboBox, SearchableComboBox
+from ui.components import ForensicComboBox, SearchableComboBox, setup_table_headers
 
 
 class TransactionPage(QWidget):
@@ -63,6 +63,7 @@ class TransactionPage(QWidget):
 
         # Transaction Table — stretch=1 so it fills available vertical space
         self.tx_table = QTableWidget(0, 8)
+        setup_table_headers(self.tx_table)
         self.tx_table.setHorizontalHeaderLabels([
             "TXID", "Timestamp (UTC)", "Relay IP", "Country", "Inputs", "Outputs", "Volume (BTC)", "Fee (BTC)"
         ])
@@ -84,9 +85,19 @@ class TransactionPage(QWidget):
 
     def refresh_theme(self):
         """Update element styling according to active theme."""
-        self.title.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        self.subtitle.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
-        self.filter_bar.setStyleSheet(f"background-color: {THEME_COLORS['bg_card']}; border: 1px solid {THEME_COLORS['border']}; border-radius: 6px; padding: 6px 12px;")
+        self.title.setStyleSheet(f"background: transparent; font-size: 16px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.subtitle.setStyleSheet(f"background: transparent; font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.filter_bar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {THEME_COLORS['bg_card']};
+                border: 1px solid {THEME_COLORS['border']};
+                border-radius: 6px;
+                padding: 6px 12px;
+            }}
+            QLabel {{
+                background: transparent;
+            }}
+        """)
 
     def update_data(self, pipeline):
         if not pipeline:

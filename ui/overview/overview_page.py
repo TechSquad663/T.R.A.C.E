@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from app.theme import THEME_COLORS, theme_manager
-from ui.components import KPICard, RiskBadge, EmptyStateWidget
+from ui.components import KPICard, RiskBadge, EmptyStateWidget, setup_table_headers
 from ui.charts import ForensicCard, DonutChartWidget, ActivityLineChartWidget, HorizontalBarChartWidget
 from ui.alerts.alert_details import AlertDetailsDialog
 
@@ -105,10 +105,12 @@ class OverviewPage(QWidget):
         tbl_layout.addWidget(self.tbl_title)
 
         self.leads_table = QTableWidget(0, 5)
+        setup_table_headers(self.leads_table)
         self.leads_table.setHorizontalHeaderLabels(["Priority", "Entity ID", "Risk", "Pattern", "Confidence"])
         header = self.leads_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Interactive)
+        self.leads_table.setColumnWidth(1, 185)
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(3, QHeaderView.Stretch)
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
@@ -171,27 +173,27 @@ class OverviewPage(QWidget):
             border-radius: 6px;
             padding: 10px;
         """)
-        self.banner_title.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
-        self.banner_sub.setStyleSheet(f"font-size: 11px; color: {THEME_COLORS['text_secondary']};")
+        self.banner_title.setStyleSheet(f"background: transparent; font-size: 13px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.banner_sub.setStyleSheet(f"background: transparent; font-size: 11px; color: {THEME_COLORS['text_secondary']};")
 
         self.tbl_frame.setStyleSheet(f"""
             background-color: {THEME_COLORS['bg_card']};
             border: 1px solid {THEME_COLORS['border']};
             border-radius: 8px;
         """)
-        self.tbl_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
+        self.tbl_title.setStyleSheet(f"background: transparent; font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
 
         self.info_frame.setStyleSheet(f"""
             background-color: {THEME_COLORS['bg_card']};
             border: 1px solid {THEME_COLORS['border']};
             border-radius: 8px;
         """)
-        self.info_title.setStyleSheet(f"font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
+        self.info_title.setStyleSheet(f"background: transparent; font-size: 11px; font-weight: 700; color: {THEME_COLORS['text_primary']}; letter-spacing: 0.5px;")
 
-        self.lbl_graph_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
-        self.lbl_geo_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
-        self.lbl_model_backend.setStyleSheet(f"color: {THEME_COLORS['accent_blue']}; font-size: 11px; font-weight: 600;")
-        self.lbl_cio_summary.setStyleSheet(f"color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+        self.lbl_graph_summary.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+        self.lbl_geo_summary.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
+        self.lbl_model_backend.setStyleSheet(f"background: transparent; color: {THEME_COLORS['accent_blue']}; font-size: 11px; font-weight: 600;")
+        self.lbl_cio_summary.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_secondary']}; font-size: 11px;")
 
     def update_data(self, pipeline):
         """Populate overview dashboard from executed pipeline state."""
@@ -250,10 +252,10 @@ class OverviewPage(QWidget):
         med_risk = sum(1 for e in pipeline.entities.values() if 25 <= e.risk_score < 50)
         low_risk = sum(1 for e in pipeline.entities.values() if e.risk_score < 25)
         self.risk_donut.set_data([
-            ("Critical (>=75)", crit_risk, THEME_COLORS["accent_red"]),
-            ("High (50-74)", high_risk, THEME_COLORS["accent_orange"]),
-            ("Medium (25-49)", med_risk, THEME_COLORS["accent_amber"]),
-            ("Low (<25)", low_risk, THEME_COLORS["accent_emerald"]),
+            ("Critical", crit_risk, THEME_COLORS["accent_red"]),
+            ("High", high_risk, THEME_COLORS["accent_orange"]),
+            ("Medium", med_risk, THEME_COLORS["accent_amber"]),
+            ("Low", low_risk, THEME_COLORS["accent_emerald"]),
         ])
 
         # 3. Update Alert Priority Distribution
@@ -285,7 +287,12 @@ class OverviewPage(QWidget):
             self.leads_table.setItem(row_idx, 0, QTableWidgetItem(a.priority.value))
             self.leads_table.setItem(row_idx, 1, QTableWidgetItem(a.entity_id))
             self.leads_table.setItem(row_idx, 2, QTableWidgetItem(f"{a.risk_score:.1f}/100"))
-            self.leads_table.setItem(row_idx, 3, QTableWidgetItem(a.pattern))
+            
+            pat_item = QTableWidgetItem(a.pattern)
+            if a.reasons:
+                pat_item.setToolTip("Forensic Rationale:\n• " + "\n• ".join(a.reasons))
+            self.leads_table.setItem(row_idx, 3, pat_item)
+            
             self.leads_table.setItem(row_idx, 4, QTableWidgetItem(f"{int(a.confidence * 100)}%"))
 
         # Topology summary

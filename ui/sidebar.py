@@ -34,11 +34,13 @@ class Sidebar(QFrame):
         main_layout.setSpacing(6)
 
         # Brand / Title
-        self.brand_lbl = QLabel("TRACE")
-        self.sub_brand_lbl = QLabel("SIH26146 • NTRO FORENSICS")
+        self.brand_lbl = QLabel("🛡️ TRACE")
+        self.sub_brand_lbl = QLabel("BY TEAM TECHSQUAD")
+        self.team_tag_lbl = QLabel("SIH26146 • NTRO FORENSICS")
 
         main_layout.addWidget(self.brand_lbl)
         main_layout.addWidget(self.sub_brand_lbl)
+        main_layout.addWidget(self.team_tag_lbl)
 
         # Scrollable Nav Buttons Area
         self.nav_scroll = QScrollArea()
@@ -93,19 +95,30 @@ class Sidebar(QFrame):
     def refresh_theme(self):
         """Update brand and offline badge styling with active theme colors."""
         self.brand_lbl.setStyleSheet(f"""
-            font-size: 20px;
+            background: transparent;
+            font-size: 22px;
             font-weight: 900;
             color: {THEME_COLORS['accent_blue']};
             letter-spacing: 2px;
-            padding-left: 8px;
+            padding-left: 6px;
         """)
 
         self.sub_brand_lbl.setStyleSheet(f"""
+            background: transparent;
+            font-size: 10px;
+            font-weight: 800;
+            color: {THEME_COLORS['accent_cyan']};
+            letter-spacing: 1.5px;
+            padding-left: 6px;
+        """)
+
+        self.team_tag_lbl.setStyleSheet(f"""
+            background: transparent;
             font-size: 9px;
             font-weight: 700;
             color: {THEME_COLORS['text_muted']};
-            letter-spacing: 1px;
-            padding-left: 8px;
+            letter-spacing: 0.5px;
+            padding-left: 6px;
             margin-bottom: 8px;
         """)
 
@@ -116,8 +129,8 @@ class Sidebar(QFrame):
             padding: 8px;
         """)
 
-        self.off_title.setStyleSheet(f"color: {THEME_COLORS['accent_emerald']}; font-weight: 700; font-size: 11px;")
-        self.off_desc.setStyleSheet(f"color: {THEME_COLORS['text_muted']}; font-size: 10px;")
+        self.off_title.setStyleSheet(f"background: transparent; color: {THEME_COLORS['accent_emerald']}; font-weight: 700; font-size: 11px;")
+        self.off_desc.setStyleSheet(f"background: transparent; color: {THEME_COLORS['text_muted']}; font-size: 10px;")
 
     def _on_button_clicked(self, page_id: int):
         self.page_changed.emit(page_id)

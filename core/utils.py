@@ -76,7 +76,7 @@ def parse_timestamp_iso(ts_val: Any) -> Optional[datetime]:
         except (ValueError, OSError):
             pass
             
-    # Try standard ISO strings
+    # Try standard ISO and common datetime strings
     for fmt in [
         "%Y-%m-%dT%H:%M:%S%z",
         "%Y-%m-%dT%H:%M:%S.%f%z",
@@ -85,6 +85,10 @@ def parse_timestamp_iso(ts_val: Any) -> Optional[datetime]:
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d %H:%M:%S.%f",
         "%Y/%m/%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%d-%m-%Y",
+        "%d/%m/%Y",
     ]:
         try:
             dt = datetime.strptime(ts_str, fmt)
@@ -107,7 +111,7 @@ def parse_timestamp_iso(ts_val: Any) -> Optional[datetime]:
 def parse_array_field(val: Any) -> List[Any]:
     """
     Robust array parser: Handles Python list, JSON arrays,
-    semicolon-separated, pipe-separated, or comma-separated strings.
+    bracketed semicolon-delimited, pipe-separated, or comma-separated strings.
     """
     if val is None:
         return []
@@ -117,19 +121,25 @@ def parse_array_field(val: Any) -> List[Any]:
         v = val.strip()
         if not v:
             return []
-        # JSON array format
+        # JSON or bracket array format: ['addr1'; 'addr2'] or ["addr1", "addr2"]
         if (v.startswith("[") and v.endswith("]")) or (v.startswith("(") and v.endswith(")")):
             try:
                 parsed = json.loads(v.replace("'", '"'))
                 if isinstance(parsed, list):
                     return parsed
             except Exception:
-                # Strip braces and split
-                inner = v[1:-1].strip()
-                if not inner:
-                    return []
-                parts = [x.strip().strip("'\"") for x in inner.split(",") if x.strip()]
-                return parts
+                pass
+            # Strip outer brackets and split by delimiter
+            inner = v[1:-1].strip()
+            if not inner:
+                return []
+            if ";" in inner:
+                return [x.strip().strip("'\"") for x in inner.split(";") if x.strip()]
+            if "," in inner:
+                return [x.strip().strip("'\"") for x in inner.split(",") if x.strip()]
+            if "|" in inner:
+                return [x.strip().strip("'\"") for x in inner.split("|") if x.strip()]
+            return [inner.strip().strip("'\"")]
         # Semicolon separated
         if ";" in v:
             return [x.strip().strip("'\"") for x in v.split(";") if x.strip()]

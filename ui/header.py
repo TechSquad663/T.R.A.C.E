@@ -23,7 +23,7 @@ class Header(QFrame):
         title_box = QHBoxLayout()
         title_box.setSpacing(8)
 
-        self.title_lbl = QLabel("TRACE  ›  Command Center")
+        self.title_lbl = QLabel("TRACE  ›  Team TechSquad")
         self.dataset_tag = QLabel("[No Dataset Loaded]")
         self.dataset_tag.setMinimumWidth(180)
         self.dataset_tag.setMaximumWidth(360)
@@ -70,7 +70,7 @@ class Header(QFrame):
     def refresh_theme(self):
         """Update header components styling according to active theme."""
         is_dark = theme_manager.is_dark()
-        self.title_lbl.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
+        self.title_lbl.setStyleSheet(f"background: transparent; font-size: 14px; font-weight: 700; color: {THEME_COLORS['text_primary']};")
 
         # Dataset tag styling
         if self.current_dataset_name:
